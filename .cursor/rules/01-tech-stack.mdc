@@ -1,0 +1,60 @@
+---
+description: "Версии и запрещённые API: Hilt, Retrofit, Firebase, Credential Manager."
+alwaysApply: true
+---
+
+# Tech Stack
+
+## Core
+- Kotlin 2.1+
+- Jetpack Compose (BOM latest stable)
+- Coroutines + Flow, StateFlow, SharedFlow
+- Hilt 2.51+ (использовать KSP, не kapt)
+
+## Network (если понадобится)
+- Retrofit 2.11+ + kotlinx-serialization
+- OkHttp 4.12+
+- НЕ использовать Ktor (если только не KMP)
+
+## Firebase
+- Firebase BOM latest
+- Firebase Auth (Credential Manager, НЕ GoogleSignInClient)
+- Firestore
+
+## Navigation
+- Navigation 3 (androidx.navigation3)
+- НЕ использовать Navigation 2 (устаревающий подход для новых проектов)
+- Back stack управляется через rememberNavBackStack / SnapshotStateList
+
+## Запрещено
+- ❌ LiveData — только StateFlow/SharedFlow
+- ❌ GlobalScope
+- ❌ kapt — использовать KSP
+- ❌ GoogleSignInClient (устарел) — только Credential Manager
+- ❌ Gson/Moshi — только kotlinx-serialization
+- ❌ Прямые вызовы Firebase из ViewModel
+
+## Именование
+- ViewModel: `AuthViewModel`, `GroupsViewModel`
+- UiState: `AuthUiState`
+- Intent: `AuthIntent`
+- Effect: `AuthEffect`
+- Repository: интерфейс `AuthRepository`, реализация `AuthRepositoryImpl`
+
+## Design System
+- Material 3 (Compose) — ЕДИНСТВЕННЫЙ дизайн-система
+- Импорты ТОЛЬКО из `androidx.compose.material3.*`
+- ❌ НЕ использовать M2 (`androidx.compose.material.*`)
+
+## Цвета
+- Только роли: `MaterialTheme.colorScheme.primary`, `.surface`, `.onSurfaceVariant`
+- ❌ НЕ хардкодить hex/rgb
+- Для разделителей: `outlineVariant` (не `outline`)
+
+## Элевация
+- M3 использует тональную элевацию (`tonalElevation`), не тени
+- `shadowElevation` — только при необходимости отделить от шумного фона
+
+## Типографика
+- `MaterialTheme.typography.*`
+- ❌ НЕ использовать `ContentAlpha` (удален в M3)

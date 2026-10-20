@@ -1,0 +1,50 @@
+---
+description: "MVI архитектура: State, Intent, Effect. Единственный источник истины."
+alwaysApply: true
+---
+
+# MVI Architecture Rules
+
+## Тройка MVI
+Каждая фича обязана иметь три составляющие:
+
+1. **State (UiState)**
+   - Единственный `data class` или `sealed class` на весь экран.
+   - Иммутабельный. Обновляется только через `copy()` или новый инстанс.
+   - Expose через `StateFlow<UiState>`.
+   - Начальное состояние обязательно.
+
+2. **Intent**
+   - `sealed class` со всеми возможными действиями пользователя/системы.
+   - UI вызывает `viewModel.onIntent(intent)` — единственную публичную функцию.
+   - Запрещены публичные методы типа `onEmailChanged()`, `onSubmit()`.
+
+3. **Effect**
+   - `sealed class` для one-off событий: навигация, Toast, Snackbar, диалог.
+   - Expose через `Channel<Effect>` + `receiveAsFlow()`.
+   - **Запрещено** класть Effect в State (иначе повторится при рекомпозиции/повороте).
+
+## ViewModel
+- Наследуется от `ViewModel` (AAC), НЕ от `AndroidViewModel`.
+- Помечается `@HiltViewModel`.
+- Внутри — `MutableStateFlow<UiState>` и `Channel<Effect>`.
+- Вся логика обработки Intent — в `viewModelScope.launch`.
+- **Никаких прямых вызовов Firebase/Retrofit** — только через Repository.
+
+## Repository
+- Интерфейс в `domain`, реализация в `data`.
+- Возвращает `Flow<T>` или `suspend fun ...: Result<T>`.
+- Repository — единственный, кто знает про источники данных.
+
+## UI (Compose)
+- Composable получает `uiState` и лямбду `onIntent: (Intent) -> Unit`.
+- **Не знает** про ViewModel напрямую (кроме входной точки).
+- Собирает Effect через `LaunchedEffect` + `collect`.
+
+## Single Source of Truth
+- `UiState` — SSOT для UI.
+- Repository — SSOT для данных.
+- **Никогда** не смешивать локальные `remember`-переменные с бизнес-состоянием.
+
+## Навигация 
+- это часть UiState или отдельный слой, а не логика внутри Composable. В MVI навигационные события (какой экран показать) должны проходить через Effect, а не вызываться напрямую из лямбды кнопки.

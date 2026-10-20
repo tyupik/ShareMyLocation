@@ -1,0 +1,30 @@
+---
+description: "Kotlin: корутины, Flow, обработка ошибок, Result."
+globs: **/*.kt
+---
+
+# Kotlin Conventions
+
+## Coroutines
+- `viewModelScope.launch` для всех операций во ViewModel
+- `suspend` функции только в Repository/UseCase
+- Отмена через `ensureActive()` или `isActive`
+
+## Flow
+- `StateFlow` для состояния (всегда `MutableStateFlow` → `asStateFlow()`)
+- `Channel` для Effect (capacity = `Channel.BUFFERED`)
+- `receiveAsFlow()` для Expose Effect
+
+## Обработка ошибок
+- Repository возвращает `Result<T>`
+- В ViewModel: `result.fold(onSuccess = ..., onFailure = ...)`
+- **НЕ глотать исключения** — логировать и преобразовывать в UiState.Error
+
+## UiState
+- `sealed interface` / `sealed class` если состояния взаимоисключающие
+- `data class` если поля независимые (но всё равно один State)
+- Всегда есть `object Loading` или `data class Error(val message: String)`
+
+## Комментарии
+- KDoc для публичных функций
+- НЕ комментировать очевидное

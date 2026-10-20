@@ -1,0 +1,28 @@
+<resources>
+    <string name="app_name">ShareMyLocation</string>
+
+    <!-- Экран аутентификации -->
+    <string name="auth_title_sign_in">Вход</string>
+    <string name="auth_title_sign_up">Регистрация</string>
+    <string name="auth_email_label">Email</string>
+    <string name="auth_password_label">Пароль</string>
+    <string name="auth_confirm_password_label">Подтвердите пароль</string>
+    <string name="auth_error_passwords_mismatch">Пароли не совпадают</string>
+    <string name="auth_show_password">Показать пароль</string>
+    <string name="auth_hide_password">Скрыть пароль</string>
+    <string name="auth_display_name_label">Имя</string>
+    <string name="auth_sign_in_button">Войти</string>
+    <string name="auth_sign_up_button">Зарегистрироваться</string>
+    <string name="auth_google_button">Войти через Google</string>
+    <string name="auth_or">или</string>
+    <string name="auth_error_email_in_use">Этот email уже зарегистрирован</string>
+    <string name="auth_error_invalid_credentials">Неверный email или пароль</string>
+    <string name="auth_error_invalid_sign_up_data">Проверьте email и пароль (минимум 6 символов)</string>
+    <string name="auth_error_network">Нет подключения к сети. Проверьте интернет и попробуйте снова</string>
+    <string name="auth_error_unexpected">Что-то пошло не так. Попробуйте ещё раз</string>
+
+    <!-- Временный главный экран -->
+    <string name="main_signed_in_as">Вы вошли как %1$s</string>
+    <string name="main_unknown_user">неизвестный пользователь</string>
+    <string name="main_sign_out">Выход</string>
+</resources>

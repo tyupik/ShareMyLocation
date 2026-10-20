@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "249948015102",
+    "project_id": "sharemylocation-d44b4",
+    "storage_bucket": "sharemylocation-d44b4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:249948015102:android:455db0a7dafb8e772118af",
+        "android_client_info": {
+          "package_name": "ru.tyupik.sharemylocation"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "249948015102-8pgtrmbe754mhbtjacgm4v3ssi6acn4b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "ru.tyupik.sharemylocation",
+            "certificate_hash": "87c8ee5ad543bc23f7e853e31df6991e20a835a4"
+          }
+        },
+        {
+          "client_id": "249948015102-m6m8lptmfl9elba7436birmf8qoedv6e.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAA6x7YjY-bqHjuzYI7FQNXq_td-wp-Lxs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "249948015102-m6m8lptmfl9elba7436birmf8qoedv6e.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
