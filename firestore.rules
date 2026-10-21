@@ -1,16 +1,95 @@
 rules_version = '2';
 
-// Доступ к Firestore: документ пользователя читает и пишет только владелец,
-// аватар (avatars/{uid}) читают авторизованные, пишет только владелец.
+// Доступ к Firestore.
+// users/{uid}: профиль читают все авторизованные (поиск по телефону, чтение профилей друзей);
+// create/delete — только владельцу; update — владельцу без ограничений, чужому документу —
+// только «добавить/удалить себя» в friendUids (self-only diff, см. isSelfFriendUidsChange).
+// ОСТАТОЧНЫЙ РИСК (учесть в Фазе 4): правила не отличают легитимный self-add по
+// ACCEPTED-заявке от прямой самозаписи в чужой friendUids (проверка потребовала бы
+// getAfter() по friendRequests — признана избыточной для MVP). При проектировании шеринга
+// нельзя доверять только факту нахождения в чужом friendUids — валидировать взаимность /
+// наличие ACCEPTED-заявки в логике шеринга.
+// avatars/{uid}: читают авторизованные, пишет только владелец.
+// friendRequests/{requestId}: читают только участники; create — только отправитель
+// (fromUid == auth.uid, toUid != auth.uid, status == 'PENDING', id = "{fromUid}_{toUid}");
+// update — только получатель, только переход PENDING → ACCEPTED с запретом изменения
+// fromUid, toUid, fromName, fromAvatarVersion; delete — любой участник.
+// Снапшот fromName/fromAvatarVersion пишет сам отправитель (fromUid жёстко равен auth.uid);
+// соответствие снапшота реальному профилю отправителя в правилах сознательно не проверяем.
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read: if request.auth != null;
+      allow create, delete: if isOwner(uid);
+      // Свой документ — без ограничений; чужой — только «добавить/удалить себя» в friendUids.
+      allow update: if isOwner(uid) || isSelfFriendUidsChange();
     }
 
     match /avatars/{uid} {
       allow read: if request.auth != null;
       allow write: if request.auth.uid == uid;
+    }
+
+    match /friendRequests/{requestId} {
+      // get по несуществующему документу безопасен: resource не читаем, только id, —
+      // клиентская проверка «заявки нет» не падает с PERMISSION_DENIED.
+      allow get: if request.auth != null && isRequestParticipantById(requestId);
+
+      allow list: if request.auth != null
+        && (resource.data.fromUid == request.auth.uid
+            || resource.data.toUid == request.auth.uid);
+
+      allow create: if request.auth != null
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.toUid != request.auth.uid
+        && request.resource.data.status == 'PENDING'
+        // id обязан совпадать с парой участников — иначе get-по-id давал бы
+        // доступ к документам с «чужими» идентификаторами.
+        && requestId == request.resource.data.fromUid + '_' + request.resource.data.toUid;
+
+      // update — только получателем, только переход PENDING → ACCEPTED,
+      // снапшот-поля (fromUid, toUid, fromName, fromAvatarVersion) неизменны.
+      allow update: if request.auth != null
+        && resource.data.toUid == request.auth.uid
+        && resource.data.status == 'PENDING'
+        && request.resource.data.status == 'ACCEPTED'
+        && resource.data.fromUid == request.resource.data.fromUid
+        && resource.data.toUid == request.resource.data.toUid
+        && resource.data.fromName == request.resource.data.fromName
+        && resource.data.fromAvatarVersion == request.resource.data.fromAvatarVersion;
+
+      // delete — любой участник (resource-based).
+      allow delete: if request.auth != null
+        && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
+    }
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // Чужой users-документ допустимо менять только в рамках операций дружбы:
+    // затронуты только friendUids/updatedAt, а разница списков — ровно добавление
+    // или ровно удаление самого request.auth.uid (ничего больше).
+    function isSelfFriendUidsChange() {
+      let oldUids = resource.data.get('friendUids', []).toSet();
+      let newUids = request.resource.data.get('friendUids', []).toSet();
+      let added = newUids.difference(oldUids);
+      let removed = oldUids.difference(newUids);
+      return request.auth != null
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['friendUids', 'updatedAt'])
+        && (
+          (added.hasOnly([request.auth.uid]) && removed.size() == 0)
+          || (removed.hasOnly([request.auth.uid]) && added.size() == 0)
+        );
+    }
+
+    // Участник заявки определяется разбором id "{fromUid}_{toUid}", поэтому get работает
+    // и для несуществующего документа: resource не читается, только идентификатор.
+    function isRequestParticipantById(requestId) {
+      let parts = requestId.split('_');
+      return parts.size() == 2
+        && (parts[0] == request.auth.uid || parts[1] == request.auth.uid);
     }
   }
 }

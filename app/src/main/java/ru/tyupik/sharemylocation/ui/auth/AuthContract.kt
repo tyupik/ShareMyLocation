@@ -8,6 +8,9 @@ enum class AuthMode {
 
 /**
  * SSOT для экрана входа/регистрации.
+ * Форма переживает поворот (LaunchedEffect(Unit) при нём перезапускается, поэтому
+ * сбрасывать её на каждый показ нельзя); целиком сбрасывается при повторном показе
+ * после успешной аутентификации (выход из аккаунта) — см. [AuthIntent.ScreenShown].
  * Ошибки показываются инлайн на форме и переживают поворот; сбрасываются при вводе,
  * переключении режима и новом сабмите.
  */
@@ -25,6 +28,13 @@ data class AuthUiState(
 
 /** Действия пользователя и системные события Credential Manager. */
 sealed class AuthIntent {
+    /**
+     * Экран показан. На каждый показ — no-op (форма переживает поворот, LaunchedEffect(Unit)
+     * перезапускается при нём); повторный показ после успешной аутентификации
+     * (выход из аккаунта) целиком сбрасывает форму в AuthUiState().
+     */
+    data object ScreenShown : AuthIntent()
+
     // Ввод текста
     data class EmailChanged(val value: String) : AuthIntent()
     data class PasswordChanged(val value: String) : AuthIntent()

@@ -54,6 +54,10 @@ internal fun AuthScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    // На каждый показ (в т.ч. при повороте) — no-op: форма сбрасывается только
+    // при повторном показе после успешной аутентификации (см. AuthViewModel.onScreenShown).
+    LaunchedEffect(Unit) { viewModel.onIntent(AuthIntent.ScreenShown) }
+
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->
             when (effect) {

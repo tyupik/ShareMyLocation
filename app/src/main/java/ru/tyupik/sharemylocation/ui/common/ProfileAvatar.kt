@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import java.io.File
@@ -18,12 +19,14 @@ import java.io.File
 /**
  * Круглый аватар с плейсхолдером (первая буква имени) — общий элемент экранов профиля.
  * [localPath] — путь к файлу JPEG в кэше приложения; null — плейсхолдер.
+ * [size] — сторона аватара; по умолчанию 112dp для совместимости с ProfileHeader.
  */
 @Composable
 fun ProfileAvatar(
     displayName: String,
     localPath: String?,
     modifier: Modifier = Modifier,
+    size: Dp = DEFAULT_AVATAR_SIZE,
 ) {
     if (localPath != null) {
         AsyncImage(
@@ -31,13 +34,13 @@ fun ProfileAvatar(
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = modifier
-                .size(AVATAR_SIZE_DP.dp)
+                .size(size)
                 .clip(CircleShape),
         )
     } else {
         Box(
             modifier = modifier
-                .size(AVATAR_SIZE_DP.dp)
+                .size(size)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center,
@@ -51,4 +54,4 @@ fun ProfileAvatar(
     }
 }
 
-private const val AVATAR_SIZE_DP = 112
+private val DEFAULT_AVATAR_SIZE = 112.dp

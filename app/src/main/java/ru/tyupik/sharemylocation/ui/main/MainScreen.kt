@@ -11,7 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import ru.tyupik.sharemylocation.ui.main.composable.FriendsTabPlaceholder
+import ru.tyupik.sharemylocation.ui.friends.FriendsScreen
 import ru.tyupik.sharemylocation.ui.main.composable.MainBottomBar
 import ru.tyupik.sharemylocation.ui.main.composable.MapTabPlaceholder
 import ru.tyupik.sharemylocation.ui.profile.ProfileScreen
@@ -40,6 +40,7 @@ internal fun MainScreen(
 
     MainContent(
         selectedTab = uiState.selectedTab,
+        pendingRequestsCount = uiState.pendingRequestsCount,
         onIntent = viewModel::onIntent,
         onEditProfile = onEditProfile,
     )
@@ -48,6 +49,7 @@ internal fun MainScreen(
 @Composable
 private fun MainContent(
     selectedTab: MainTab,
+    pendingRequestsCount: Int,
     onIntent: (MainIntent) -> Unit,
     onEditProfile: () -> Unit,
 ) {
@@ -55,6 +57,7 @@ private fun MainContent(
         bottomBar = {
             MainBottomBar(
                 selectedTab = selectedTab,
+                friendsBadgeCount = pendingRequestsCount,
                 onTabSelected = { onIntent(MainIntent.TabSelected(it)) },
             )
         },
@@ -66,7 +69,7 @@ private fun MainContent(
         ) {
             when (selectedTab) {
                 MainTab.MAP -> MapTabPlaceholder(modifier = Modifier.fillMaxSize())
-                MainTab.FRIENDS -> FriendsTabPlaceholder(modifier = Modifier.fillMaxSize())
+                MainTab.FRIENDS -> FriendsScreen(modifier = Modifier.fillMaxSize())
                 MainTab.PROFILE -> ProfileScreen(
                     onEditProfile = onEditProfile,
                     onSignOutClick = { onIntent(MainIntent.SignOutClicked) },
@@ -81,6 +84,11 @@ private fun MainContent(
 @Composable
 private fun MainContentPreview() {
     ShareMyLocationTheme {
-        MainContent(selectedTab = MainTab.MAP, onIntent = {}, onEditProfile = {})
+        MainContent(
+            selectedTab = MainTab.MAP,
+            pendingRequestsCount = 0,
+            onIntent = {},
+            onEditProfile = {},
+        )
     }
 }

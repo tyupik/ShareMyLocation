@@ -7,6 +7,8 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -36,6 +38,7 @@ private val MAIN_TAB_ITEMS = listOf(
 @Composable
 internal fun MainBottomBar(
     selectedTab: MainTab,
+    friendsBadgeCount: Int,
     onTabSelected: (MainTab) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -45,10 +48,20 @@ internal fun MainBottomBar(
                 selected = selectedTab == item.tab,
                 onClick = { onTabSelected(item.tab) },
                 icon = {
-                    Icon(
-                        imageVector = if (selectedTab == item.tab) item.selectedIcon else item.unselectedIcon,
-                        contentDescription = stringResource(item.labelRes),
-                    )
+                    val icon = if (selectedTab == item.tab) item.selectedIcon else item.unselectedIcon
+                    if (item.tab == MainTab.FRIENDS && friendsBadgeCount > 0) {
+                        BadgedBox(badge = { Badge { Text(text = friendsBadgeCount.toString()) } }) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = stringResource(item.labelRes),
+                            )
+                        }
+                    } else {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = stringResource(item.labelRes),
+                        )
+                    }
                 },
                 label = { Text(stringResource(item.labelRes)) },
             )

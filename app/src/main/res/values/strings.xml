@@ -26,7 +26,30 @@
     <string name="main_tab_friends">Друзья</string>
     <string name="main_tab_profile">Профиль</string>
     <string name="main_map_placeholder">Здесь будет карта</string>
-    <string name="main_friends_placeholder">Здесь будут друзья</string>
+
+    <!-- Вкладка «Друзья» -->
+    <string name="friends_search_hint">Найдите друзей по номеру телефона</string>
+    <string name="friends_search_placeholder">Номер телефона</string>
+    <string name="friends_search_clear">Очистить поиск</string>
+    <string name="friends_section_requests">Заявки</string>
+    <string name="friends_section_friends">Друзья</string>
+    <string name="friends_add_button">Добавить в друзья</string>
+    <string name="friends_accept_button">Принять</string>
+    <string name="friends_decline_button">Отклонить</string>
+    <string name="friends_remove_button">Удалить из друзей</string>
+    <string name="friends_empty_requests">Заявок пока нет</string>
+    <string name="friends_empty_friends">Друзей пока нет</string>
+    <string name="friends_request_sent">Заявка отправлена</string>
+    <string name="friends_error_user_not_found">Пользователь с таким номером не найден</string>
+    <string name="friends_error_invalid_phone">Введите корректный номер телефона (10–15 цифр)</string>
+    <string name="friends_error_network">Нет подключения к сети. Проверьте интернет и попробуйте снова</string>
+    <string name="friends_error_request_to_self">Нельзя добавить себя в друзья</string>
+    <string name="friends_error_already_friends">Вы уже друзья</string>
+    <string name="friends_error_request_already_sent">Заявка этому пользователю уже отправлена</string>
+    <string name="friends_error_request_already_incoming">Этот пользователь уже отправил вам заявку — примите её в списке заявок</string>
+    <string name="friends_error_unexpected">Не удалось выполнить действие. Попробуйте ещё раз</string>
+    <string name="friends_load_error">Не удалось загрузить. Проверьте интернет и попробуйте снова</string>
+    <string name="friends_retry">Повторить</string>
 
     <!-- Вкладка «Профиль» -->
     <string name="profile_edit">Редактировать</string>

@@ -4,6 +4,7 @@ import android.util.Log;
 
 import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.FirebaseNetworkException;
+import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
 import com.google.firebase.auth.FirebaseAuthInvalidUserException;
@@ -12,14 +13,21 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.auth.UserProfileChangeRequest;
 import com.google.firebase.firestore.Blob;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldPath;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.firestore.Transaction;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -28,6 +36,10 @@ import java.util.concurrent.TimeoutException;
 import ru.tyupik.sharemylocation.business.auth.AuthError;
 import ru.tyupik.sharemylocation.business.auth.AuthException;
 import ru.tyupik.sharemylocation.business.common.User;
+import ru.tyupik.sharemylocation.business.friends.FriendRequest;
+import ru.tyupik.sharemylocation.business.friends.FriendRequestStatus;
+import ru.tyupik.sharemylocation.business.friends.FriendsError;
+import ru.tyupik.sharemylocation.business.friends.FriendsException;
 import ru.tyupik.sharemylocation.business.profile.ProfileError;
 import ru.tyupik.sharemylocation.business.profile.ProfileException;
 
@@ -51,6 +63,16 @@ public final class FirebaseBackend {
     private static final String FIELD_AVATAR_VERSION = "avatarVersion";
     private static final String FIELD_AVATAR_BLOB = "jpeg";
     private static final String FIELD_HAS_COMPLETED_ONBOARDING = "hasCompletedOnboarding";
+    private static final String FRIEND_REQUESTS_COLLECTION = "friendRequests";
+    private static final String FIELD_FRIEND_UIDS = "friendUids";
+    private static final String FIELD_FROM_UID = "fromUid";
+    private static final String FIELD_TO_UID = "toUid";
+    private static final String FIELD_FROM_NAME = "fromName";
+    private static final String FIELD_FROM_AVATAR_VERSION = "fromAvatarVersion";
+    private static final String FIELD_STATUS = "status";
+    private static final String STATUS_PENDING = "PENDING";
+    private static final String STATUS_ACCEPTED = "ACCEPTED";
+    private static final String REQUEST_ID_SEPARATOR = "_";
 
     /**
      * Максимальный размер JPEG аватара: лимит документа Firestore — 1 МБ,
@@ -271,24 +293,480 @@ public final class FirebaseBackend {
         return fallback;
     }
 
-    private ProfileException toProfileException(Throwable throwable) {
-        Throwable cause = throwable;
-        if (throwable instanceof ExecutionException && throwable.getCause() != null) {
-            cause = throwable.getCause();
+    // ------------------------------------------------------------------
+    // Фича «Друзья»: поиск, заявки, список друзей.
+    // ------------------------------------------------------------------
+
+    /**
+     * Поиск пользователей по точному совпадению нормализованного телефона.
+     * Пустой список — совпадений нет (коллизии телефонов разрешает вызывающий слой).
+     */
+    public List<User> findUsersByPhone(String phone) throws FriendsException {
+        Log.d(TAG, "findUsersByPhone: start");
+        try {
+            QuerySnapshot snapshot = await(
+                FirebaseFirestore.getInstance()
+                    .collection(USERS_COLLECTION)
+                    .whereEqualTo(FIELD_PHONE, phone)
+                    .get()
+            );
+            List<User> users = new ArrayList<>();
+            for (DocumentSnapshot document : snapshot.getDocuments()) {
+                users.add(toUser(document));
+            }
+            Log.d(TAG, "findUsersByPhone: done, size=" + users.size());
+            return users;
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            throw toFriendsException(e);
         }
+    }
+
+    /**
+     * Профили пользователей по uid одним запросом whereIn по FieldPath.documentId.
+     * Лимит whereIn — 10 элементов на запрос; чанкование выполняет Kotlin-репозиторий.
+     */
+    public List<User> getUsersByUids(List<String> uids) throws FriendsException {
+        if (uids == null || uids.isEmpty()) {
+            return new ArrayList<>();
+        }
+        Log.d(TAG, "getUsersByUids: start, size=" + uids.size());
+        try {
+            QuerySnapshot snapshot = await(
+                FirebaseFirestore.getInstance()
+                    .collection(USERS_COLLECTION)
+                    .whereIn(FieldPath.documentId(), uids)
+                    .get()
+            );
+            List<User> users = new ArrayList<>();
+            for (DocumentSnapshot document : snapshot.getDocuments()) {
+                users.add(toUser(document));
+            }
+            Log.d(TAG, "getUsersByUids: done, size=" + users.size());
+            return users;
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            throw toFriendsException(e);
+        }
+    }
+
+    /** Список друзей текущего пользователя из поля friendUids его документа users (пустой, если поля нет). */
+    public List<String> getMyFriendUids() throws FriendsException {
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) {
+            throw noCurrentUser();
+        }
+        Log.d(TAG, "getMyFriendUids: start");
+        try {
+            DocumentSnapshot snapshot = await(
+                FirebaseFirestore.getInstance()
+                    .collection(USERS_COLLECTION)
+                    .document(firebaseUser.getUid())
+                    .get()
+            );
+            List<String> uids = toStringList(snapshot.get(FIELD_FRIEND_UIDS));
+            Log.d(TAG, "getMyFriendUids: done, size=" + uids.size());
+            return uids;
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            throw toFriendsException(e);
+        }
+    }
+
+    /**
+     * Заявка friendRequests/{fromUid_toUid} либо null, если документа нет.
+     * Используется для проверок «заявка уже отправлена / встречная заявка» по свежим данным.
+     */
+    public FriendRequest getFriendRequest(String fromUid, String toUid) throws FriendsException {
+        Log.d(TAG, "getFriendRequest: start");
+        try {
+            DocumentSnapshot snapshot = await(
+                FirebaseFirestore.getInstance()
+                    .collection(FRIEND_REQUESTS_COLLECTION)
+                    .document(requestId(fromUid, toUid))
+                    .get()
+            );
+            Log.d(TAG, "getFriendRequest: done, exists=" + snapshot.exists());
+            return snapshot.exists() ? toFriendRequest(snapshot) : null;
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            throw toFriendsException(e);
+        }
+    }
+
+    /**
+     * Создаёт PENDING-заявку friendRequests/{fromUid_toUid} со снапшотом профиля отправителя
+     * (displayName, avatarVersion из своего документа users на момент отправки).
+     * Проверки AlreadyFriends/PENDING-барьеров и удаление stale-документов пары
+     * делает репозиторий (см. KDoc FriendsRepositoryImpl.sendFriendRequest).
+     */
+    public void sendFriendRequest(String toUid) throws FriendsException {
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) {
+            throw noCurrentUser();
+        }
+        Log.d(TAG, "sendFriendRequest: start");
+        FirebaseFirestore firestore = FirebaseFirestore.getInstance();
+        try {
+            DocumentSnapshot mySnapshot = await(
+                firestore.collection(USERS_COLLECTION).document(firebaseUser.getUid()).get()
+            );
+            if (!mySnapshot.exists()) {
+                throw new FriendsException(
+                    new FriendsError.Unexpected("Собственный документ users не найден при отправке заявки"),
+                    null
+                );
+            }
+            Long avatarVersion = mySnapshot.getLong(FIELD_AVATAR_VERSION);
+            String fromName = firstNonEmpty(
+                mySnapshot.getString(FIELD_DISPLAY_NAME),
+                firebaseUser.getDisplayName()
+            );
+            Map<String, Object> data = new HashMap<>();
+            data.put(FIELD_FROM_UID, firebaseUser.getUid());
+            data.put(FIELD_TO_UID, toUid);
+            data.put(FIELD_FROM_NAME, fromName != null ? fromName : "");
+            data.put(FIELD_FROM_AVATAR_VERSION, avatarVersion != null ? avatarVersion : 0L);
+            data.put(FIELD_STATUS, STATUS_PENDING);
+            data.put(FIELD_CREATED_AT, FieldValue.serverTimestamp());
+            data.put(FIELD_UPDATED_AT, FieldValue.serverTimestamp());
+            await(
+                firestore.collection(FRIEND_REQUESTS_COLLECTION)
+                    .document(requestId(firebaseUser.getUid(), toUid))
+                    .set(data)
+            );
+            Log.d(TAG, "sendFriendRequest: done");
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            throw toFriendsException(e);
+        }
+    }
+
+    /**
+     * Принимает заявку от [fromUid]: транзакция ставит статус ACCEPTED и updatedAt в документе
+     * заявки и добавляет участников в friendUids ОБОИХ users-документов.
+     * Повторное принятие обработанной или удалённой заявки — идемпотентный успех.
+     */
+    public void acceptFriendRequest(String fromUid) throws FriendsException {
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) {
+            throw noCurrentUser();
+        }
+        String myUid = firebaseUser.getUid();
+        Log.d(TAG, "acceptFriendRequest: start");
+        FirebaseFirestore firestore = FirebaseFirestore.getInstance();
+        DocumentReference requestDocument = firestore
+            .collection(FRIEND_REQUESTS_COLLECTION)
+            .document(requestId(fromUid, myUid));
+        try {
+            await(firestore.runTransaction(transaction -> {
+                DocumentSnapshot requestSnapshot = transaction.get(requestDocument);
+                if (!requestSnapshot.exists()
+                        || !STATUS_PENDING.equals(requestSnapshot.getString(FIELD_STATUS))) {
+                    // Заявку уже обработали или удалили — считаем приём успешным (идемпотентность).
+                    Log.d(TAG, "acceptFriendRequest: request already handled");
+                    return Boolean.FALSE;
+                }
+                Map<String, Object> requestData = new HashMap<>();
+                requestData.put(FIELD_STATUS, STATUS_ACCEPTED);
+                requestData.put(FIELD_UPDATED_AT, FieldValue.serverTimestamp());
+                transaction.set(requestDocument, requestData, SetOptions.merge());
+
+                unionFriendUid(transaction, firestore.collection(USERS_COLLECTION).document(myUid), fromUid);
+                unionFriendUid(transaction, firestore.collection(USERS_COLLECTION).document(fromUid), myUid);
+                return Boolean.TRUE;
+            }));
+            Log.d(TAG, "acceptFriendRequest: done");
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            throw toFriendsException(e);
+        }
+    }
+
+    /** Отклоняет заявку: удаляет документ friendRequests/{fromUid_toUid} (статус DECLINED не персистится). */
+    public void declineFriendRequest(String fromUid) throws FriendsException {
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) {
+            throw noCurrentUser();
+        }
+        Log.d(TAG, "declineFriendRequest: start");
+        try {
+            await(
+                FirebaseFirestore.getInstance()
+                    .collection(FRIEND_REQUESTS_COLLECTION)
+                    .document(requestId(fromUid, firebaseUser.getUid()))
+                    .delete()
+            );
+            Log.d(TAG, "declineFriendRequest: done");
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            throw toFriendsException(e);
+        }
+    }
+
+    /**
+     * Блокирующий delete документа friendRequests/{fromUid}_{toUid}. Вызывается только когда
+     * препроверка подтвердила существование документа: для несуществующего resource == null,
+     * resource-based delete-правило даст deny. Семантику отклонения (declineFriendRequest) не несёт.
+     */
+    public void deleteFriendRequest(String fromUid, String toUid) throws FriendsException {
+        Log.d(TAG, "deleteFriendRequest: start");
+        try {
+            await(
+                FirebaseFirestore.getInstance()
+                    .collection(FRIEND_REQUESTS_COLLECTION)
+                    .document(requestId(fromUid, toUid))
+                    .delete()
+            );
+            Log.d(TAG, "deleteFriendRequest: done");
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            throw toFriendsException(e);
+        }
+    }
+
+    /**
+     * Удаляет друга: транзакция убирает участников друг у друга из friendUids (arrayRemove)
+     * в обоих users-документах и «гигиенически» удаляет stale-документы заявки пары
+     * (документ заявки отражает только последнюю заявку — см. KDoc FriendsRepositoryImpl).
+     * Delete строго guarded (exists-проверка): для несуществующего документа resource == null
+     * и resource-based delete-правило deny'ит всю транзакцию; чтения выполняются до записей.
+     */
+    public void removeFriend(String friendUid) throws FriendsException {
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) {
+            throw noCurrentUser();
+        }
+        String myUid = firebaseUser.getUid();
+        Log.d(TAG, "removeFriend: start");
+        FirebaseFirestore firestore = FirebaseFirestore.getInstance();
+        DocumentReference outgoingDocument = firestore
+            .collection(FRIEND_REQUESTS_COLLECTION)
+            .document(requestId(myUid, friendUid));
+        DocumentReference incomingDocument = firestore
+            .collection(FRIEND_REQUESTS_COLLECTION)
+            .document(requestId(friendUid, myUid));
+        try {
+            await(firestore.runTransaction(transaction -> {
+                boolean outgoingPresent = transaction.get(outgoingDocument).exists();
+                boolean incomingPresent = transaction.get(incomingDocument).exists();
+                if (outgoingPresent) {
+                    transaction.delete(outgoingDocument);
+                }
+                if (incomingPresent) {
+                    transaction.delete(incomingDocument);
+                }
+                removeFriendUid(transaction, firestore.collection(USERS_COLLECTION).document(myUid), friendUid);
+                removeFriendUid(transaction, firestore.collection(USERS_COLLECTION).document(friendUid), myUid);
+                return Boolean.TRUE;
+            }));
+            Log.d(TAG, "removeFriend: done");
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            throw toFriendsException(e);
+        }
+    }
+
+    /**
+     * Realtime-слушатель входящих PENDING-заявок текущего пользователя.
+     * Без orderBy: сортировка по createdAt выполняется на клиенте, поэтому
+     * композитные индексы для этого запроса не нужны.
+     */
+    public ListenerRegistration listenIncomingFriendRequests(FriendRequestsListener listener)
+        throws FriendsException {
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) {
+            throw noCurrentUser();
+        }
+        Log.d(TAG, "listenIncomingFriendRequests: start");
+        return FirebaseFirestore.getInstance()
+            .collection(FRIEND_REQUESTS_COLLECTION)
+            .whereEqualTo(FIELD_TO_UID, firebaseUser.getUid())
+            .whereEqualTo(FIELD_STATUS, STATUS_PENDING)
+            .addSnapshotListener((snapshots, error) -> {
+                if (error != null) {
+                    Log.w(TAG, "listenIncomingFriendRequests: error", error);
+                    listener.onUpdated(null, error);
+                    return;
+                }
+                List<FriendRequest> requests = new ArrayList<>();
+                if (snapshots != null) {
+                    for (DocumentSnapshot document : snapshots.getDocuments()) {
+                        FriendRequest request = toFriendRequest(document);
+                        if (request != null) {
+                            requests.add(request);
+                        }
+                    }
+                }
+                listener.onUpdated(requests, null);
+            });
+    }
+
+    /** Realtime-слушатель поля friendUids своего документа users (отсутствие поля — пустой список). */
+    public ListenerRegistration listenMyFriendUids(FriendUidsListener listener) throws FriendsException {
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) {
+            throw noCurrentUser();
+        }
+        Log.d(TAG, "listenMyFriendUids: start");
+        return FirebaseFirestore.getInstance()
+            .collection(USERS_COLLECTION)
+            .document(firebaseUser.getUid())
+            .addSnapshotListener((snapshot, error) -> {
+                if (error != null) {
+                    Log.w(TAG, "listenMyFriendUids: error", error);
+                    listener.onUpdated(null, error);
+                    return;
+                }
+                List<String> uids = snapshot != null && snapshot.exists()
+                    ? toStringList(snapshot.get(FIELD_FRIEND_UIDS))
+                    : new ArrayList<>();
+                listener.onUpdated(uids, null);
+            });
+    }
+
+    /** Колбэк realtime-слушателя входящих заявок; error != null означает обрыв потока данных. */
+    public interface FriendRequestsListener {
+        void onUpdated(List<FriendRequest> requests, Exception error);
+    }
+
+    /** Колбэк realtime-слушателя списка друзей (поле friendUids своего документа users). */
+    public interface FriendUidsListener {
+        void onUpdated(List<String> uids, Exception error);
+    }
+
+    /** Добавляет друга в friendUids users-документа внутри транзакции (merge, arrayUnion). */
+    private void unionFriendUid(Transaction transaction, DocumentReference userDocument, String friendUid) {
+        Map<String, Object> data = new HashMap<>();
+        data.put(FIELD_FRIEND_UIDS, FieldValue.arrayUnion(friendUid));
+        data.put(FIELD_UPDATED_AT, FieldValue.serverTimestamp());
+        transaction.set(userDocument, data, SetOptions.merge());
+    }
+
+    /** Убирает друга из friendUids users-документа внутри транзакции (merge, arrayRemove). */
+    private void removeFriendUid(Transaction transaction, DocumentReference userDocument, String friendUid) {
+        Map<String, Object> data = new HashMap<>();
+        data.put(FIELD_FRIEND_UIDS, FieldValue.arrayRemove(friendUid));
+        data.put(FIELD_UPDATED_AT, FieldValue.serverTimestamp());
+        transaction.set(userDocument, data, SetOptions.merge());
+    }
+
+    /** Id документа заявки: "fromUid_toUid". */
+    private static String requestId(String fromUid, String toUid) {
+        return fromUid + REQUEST_ID_SEPARATOR + toUid;
+    }
+
+    /** DocumentSnapshot → User по полям документа users. */
+    private User toUser(DocumentSnapshot snapshot) {
+        Long avatarVersion = snapshot.getLong(FIELD_AVATAR_VERSION);
+        return new User(
+            snapshot.getId(),
+            snapshot.getString(FIELD_EMAIL),
+            snapshot.getString(FIELD_DISPLAY_NAME),
+            snapshot.getString(FIELD_PHONE),
+            avatarVersion != null ? avatarVersion : 0L,
+            Boolean.TRUE.equals(snapshot.getBoolean(FIELD_HAS_COMPLETED_ONBOARDING))
+        );
+    }
+
+    /** DocumentSnapshot → FriendRequest; null, если в документе нет fromUid или toUid. */
+    private FriendRequest toFriendRequest(DocumentSnapshot snapshot) {
+        String fromUid = snapshot.getString(FIELD_FROM_UID);
+        String toUid = snapshot.getString(FIELD_TO_UID);
+        if (fromUid == null || toUid == null) {
+            Log.w(TAG, "toFriendRequest: в документе " + snapshot.getId() + " нет fromUid/toUid");
+            return null;
+        }
+        Long avatarVersion = snapshot.getLong(FIELD_FROM_AVATAR_VERSION);
+        Timestamp createdAt = snapshot.getTimestamp(FIELD_CREATED_AT);
+        return new FriendRequest(
+            fromUid,
+            toUid,
+            firstNonEmpty(snapshot.getString(FIELD_FROM_NAME), ""),
+            avatarVersion != null ? avatarVersion : 0L,
+            STATUS_ACCEPTED.equals(snapshot.getString(FIELD_STATUS))
+                ? FriendRequestStatus.ACCEPTED
+                : FriendRequestStatus.PENDING,
+            createdAt != null
+                ? createdAt.getSeconds() * 1000L + createdAt.getNanoseconds() / 1_000_000L
+                : 0L
+        );
+    }
+
+    /** Приводит значение поля friendUids к списку строк; не-строковые элементы пропускаются. */
+    private static List<String> toStringList(Object raw) {
+        List<String> result = new ArrayList<>();
+        if (raw instanceof List) {
+            for (Object item : (List<?>) raw) {
+                if (item instanceof String) {
+                    result.add((String) item);
+                }
+            }
+        }
+        return result;
+    }
+
+    private FriendsException noCurrentUser() {
+        return new FriendsException(
+            new FriendsError.Unexpected("Нет текущего пользователя Firebase в операциях друзей"),
+            null
+        );
+    }
+
+    private FriendsException toFriendsException(Throwable throwable) {
+        Throwable cause = unwrapCause(throwable);
+        if (cause instanceof FriendsException) {
+            return (FriendsException) cause;
+        }
+        if (isNetworkError(cause)) {
+            return new FriendsException(FriendsError.NetworkUnavailable.INSTANCE, cause);
+        }
+        if (cause instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+        }
+        return new FriendsException(new FriendsError.Unexpected(describeCause(cause)), cause);
+    }
+
+    /** Разворачивает ExecutionException до исходной причины. */
+    private static Throwable unwrapCause(Throwable throwable) {
+        if (throwable instanceof ExecutionException && throwable.getCause() != null) {
+            return throwable.getCause();
+        }
+        return throwable;
+    }
+
+    /**
+     * Классификатор «сетевая ли ошибка»: NetworkUnavailable — только недоступность транспорта
+     * (Firestore UNAVAILABLE/DEADLINE_EXCEEDED, FirebaseNetworkException, IOException, таймаут).
+     * Остальные коды Firestore (PERMISSION_DENIED, FAILED_PRECONDITION, NOT_FOUND, INTERNAL
+     * и т.п.) — не сеть: попадут в Unexpected с кодом в reason (см. describeCause).
+     */
+    private static boolean isNetworkError(Throwable cause) {
+        if (cause instanceof FirebaseNetworkException
+                || cause instanceof IOException
+                || cause instanceof TimeoutException) {
+            return true;
+        }
+        if (cause instanceof FirebaseFirestoreException) {
+            FirebaseFirestoreException.Code code = ((FirebaseFirestoreException) cause).getCode();
+            return code == FirebaseFirestoreException.Code.UNAVAILABLE
+                || code == FirebaseFirestoreException.Code.DEADLINE_EXCEEDED;
+        }
+        return false;
+    }
+
+    /** «КОД: сообщение» для reason у Firestore-ошибок (чтобы код не терялся), иначе message. */
+    private static String describeCause(Throwable cause) {
+        if (cause instanceof FirebaseFirestoreException) {
+            FirebaseFirestoreException firestoreException = (FirebaseFirestoreException) cause;
+            return firestoreException.getCode() + ": " + cause.getMessage();
+        }
+        return cause.getMessage();
+    }
+
+    private ProfileException toProfileException(Throwable throwable) {
+        Throwable cause = unwrapCause(throwable);
         if (cause instanceof ProfileException) {
             return (ProfileException) cause;
         }
-        if (cause instanceof FirebaseFirestoreException
-                || cause instanceof FirebaseNetworkException
-                || cause instanceof IOException
-                || cause instanceof TimeoutException) {
+        if (isNetworkError(cause)) {
             return new ProfileException(ProfileError.NetworkUnavailable.INSTANCE, cause);
         }
         if (cause instanceof InterruptedException) {
             Thread.currentThread().interrupt();
         }
-        return new ProfileException(new ProfileError.Unexpected(cause.getMessage()), cause);
+        return new ProfileException(new ProfileError.Unexpected(describeCause(cause)), cause);
     }
 
     /**
@@ -331,10 +809,7 @@ public final class FirebaseBackend {
     }
 
     private AuthException toAuthException(Throwable throwable) {
-        Throwable cause = throwable;
-        if (throwable instanceof ExecutionException && throwable.getCause() != null) {
-            cause = throwable.getCause();
-        }
+        Throwable cause = unwrapCause(throwable);
         if (cause instanceof AuthException) {
             return (AuthException) cause;
         }
@@ -345,14 +820,14 @@ public final class FirebaseBackend {
         if (cause instanceof FirebaseAuthUserCollisionException) {
             return new AuthException(AuthError.EmailAlreadyInUse.INSTANCE, cause);
         }
-        if (cause instanceof FirebaseNetworkException
-                || cause instanceof IOException
-                || cause instanceof TimeoutException) {
+        // Классификацию сети/кодов Firestore ставим ПОСЛЕ специфичных Firebase Auth-веток,
+        // чтобы не изменить их приоритет.
+        if (isNetworkError(cause)) {
             return new AuthException(AuthError.NetworkUnavailable.INSTANCE, cause);
         }
         if (cause instanceof InterruptedException) {
             Thread.currentThread().interrupt();
         }
-        return new AuthException(new AuthError.Unexpected(cause.getMessage()), cause);
+        return new AuthException(new AuthError.Unexpected(describeCause(cause)), cause);
     }
 }

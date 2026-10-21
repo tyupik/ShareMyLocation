@@ -33,8 +33,12 @@ class AuthViewModel @Inject constructor(
     private val _effects = Channel<AuthEffect>(Channel.BUFFERED)
     val effects: Flow<AuthEffect> = _effects.receiveAsFlow()
 
+    /** Признак завершённой в этой сессии VM успешной аутентификации: сброс формы на повторный показ. */
+    private var wasAuthenticated = false
+
     fun onIntent(intent: AuthIntent) {
         when (intent) {
+            AuthIntent.ScreenShown -> onScreenShown()
             is AuthIntent.EmailChanged -> onEmailChanged(intent.value)
             is AuthIntent.PasswordChanged -> onPasswordChanged(intent.value)
             is AuthIntent.RepeatedPasswordChanged -> onRepeatedPasswordChanged(intent.value)
@@ -48,6 +52,18 @@ class AuthViewModel @Inject constructor(
             is AuthIntent.GoogleSignInFailed -> onGoogleSignInFailed(intent.reason)
             AuthIntent.ErrorDismissed -> _uiState.update { it.copy(error = null) }
         }
+    }
+
+    /**
+     * Повторный показ экрана после успешной аутентификации (выход из аккаунта) — полный
+     * чистый лист: форма, isLoading и остаточная ошибка сбрасываются. На каждый показ
+     * сбрасывать нельзя: LaunchedEffect(Unit) перезапускается при повороте, и форма
+     * потеряла бы ввод.
+     */
+    private fun onScreenShown() {
+        if (!wasAuthenticated) return
+        wasAuthenticated = false
+        _uiState.value = AuthUiState()
     }
 
     private fun onEmailChanged(value: String) = _uiState.update { it.copy(email = value, error = null) }
@@ -124,6 +140,7 @@ class AuthViewModel @Inject constructor(
     }
 
     private fun onAuthSuccess() {
+        wasAuthenticated = true
         _uiState.update { it.copy(isLoading = false) }
         viewModelScope.launch { _effects.send(AuthEffect.NavigateToMain) }
     }
