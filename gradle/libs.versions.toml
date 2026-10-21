@@ -17,6 +17,7 @@ kotlinxSerializationCore = "1.9.0"
 materialIconsCore = "1.7.8"
 materialIconsExtended = "1.7.8"
 firebaseBom = "34.19.0"
+coil = "2.7.0"
 firebaseFirestore = "26.6.0"
 credentials = "1.3.0"
 credentialsPlayServicesAuth = "1.3.0"
@@ -55,6 +56,7 @@ kotlinx-serialization-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore", version.ref = "firebaseFirestore" }
+coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 androidx-credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
 androidx-credentials-play-services-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentialsPlayServicesAuth" }
 googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }

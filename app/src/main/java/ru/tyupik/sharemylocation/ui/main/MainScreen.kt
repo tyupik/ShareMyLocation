@@ -14,17 +14,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ru.tyupik.sharemylocation.ui.main.composable.FriendsTabPlaceholder
 import ru.tyupik.sharemylocation.ui.main.composable.MainBottomBar
 import ru.tyupik.sharemylocation.ui.main.composable.MapTabPlaceholder
-import ru.tyupik.sharemylocation.ui.main.composable.ProfileTabPlaceholder
+import ru.tyupik.sharemylocation.ui.profile.ProfileScreen
 import ru.tyupik.sharemylocation.ui.theme.ShareMyLocationTheme
 
 /**
  * Главный экран-контейнер: нижняя навигация с вкладками Карта, Друзья, Профиль.
- * Навигацию выполняет вызывающая сторона через [onSignedOut]: экран сам не знает про back stack,
- * лямбда вызывается только из коллекции Effect.
+ * Навигацию выполняет вызывающая сторона через [onSignedOut] и [onEditProfile]:
+ * экран сам не знает про back stack, лямбды вызываются только из коллекций Effect.
  */
 @Composable
 internal fun MainScreen(
     onSignedOut: () -> Unit,
+    onEditProfile: () -> Unit,
     viewModel: MainViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -40,6 +41,7 @@ internal fun MainScreen(
     MainContent(
         selectedTab = uiState.selectedTab,
         onIntent = viewModel::onIntent,
+        onEditProfile = onEditProfile,
     )
 }
 
@@ -47,6 +49,7 @@ internal fun MainScreen(
 private fun MainContent(
     selectedTab: MainTab,
     onIntent: (MainIntent) -> Unit,
+    onEditProfile: () -> Unit,
 ) {
     Scaffold(
         bottomBar = {
@@ -64,7 +67,8 @@ private fun MainContent(
             when (selectedTab) {
                 MainTab.MAP -> MapTabPlaceholder(modifier = Modifier.fillMaxSize())
                 MainTab.FRIENDS -> FriendsTabPlaceholder(modifier = Modifier.fillMaxSize())
-                MainTab.PROFILE -> ProfileTabPlaceholder(
+                MainTab.PROFILE -> ProfileScreen(
+                    onEditProfile = onEditProfile,
                     onSignOutClick = { onIntent(MainIntent.SignOutClicked) },
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -77,6 +81,6 @@ private fun MainContent(
 @Composable
 private fun MainContentPreview() {
     ShareMyLocationTheme {
-        MainContent(selectedTab = MainTab.MAP, onIntent = {})
+        MainContent(selectedTab = MainTab.MAP, onIntent = {}, onEditProfile = {})
     }
 }

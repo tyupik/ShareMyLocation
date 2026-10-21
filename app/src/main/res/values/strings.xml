@@ -27,6 +27,25 @@
     <string name="main_tab_profile">Профиль</string>
     <string name="main_map_placeholder">Здесь будет карта</string>
     <string name="main_friends_placeholder">Здесь будут друзья</string>
-    <string name="main_profile_placeholder">Здесь будет профиль</string>
-    <string name="main_sign_out">Выход</string>
+
+    <!-- Вкладка «Профиль» -->
+    <string name="profile_edit">Редактировать</string>
+    <string name="profile_sign_out">Выход</string>
+    <string name="profile_error_network">Не удалось загрузить профиль. Проверьте интернет и попробуйте снова</string>
+    <string name="profile_error_unexpected">Не удалось загрузить профиль. Попробуйте ещё раз</string>
+    <string name="profile_retry">Повторить</string>
+
+    <!-- Экран настройки/редактирования профиля -->
+    <string name="profile_setup_title">Настройка профиля</string>
+    <string name="profile_setup_edit_title">Редактирование профиля</string>
+    <string name="profile_setup_name_label">Имя</string>
+    <string name="profile_setup_phone_label">Телефон</string>
+    <string name="profile_setup_done_button">Готово</string>
+    <string name="profile_setup_save_button">Сохранить</string>
+    <string name="profile_setup_add_photo">Добавить фото</string>
+    <string name="profile_setup_change_photo">Сменить фото</string>
+    <string name="profile_setup_error_phone">Телефон должен содержать от 10 до 15 цифр</string>
+    <string name="profile_setup_error_avatar_too_large">Не удалось сохранить фото: оно слишком большое</string>
+    <string name="profile_setup_error_network">Не удалось сохранить профиль. Проверьте интернет и попробуйте снова</string>
+    <string name="profile_setup_error_unexpected">Не удалось сохранить профиль. Попробуйте ещё раз</string>
 </resources>

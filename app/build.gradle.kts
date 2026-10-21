@@ -70,7 +70,7 @@ dependencies {
     // При обновлении auth — положить новый classes.jar в app/libs.
     implementation(files("libs/firebase-auth-24.2.0-classes.jar"))
 
-    // Firestore: документ пользователя users/{uid}
+    // Firestore: документ пользователя users/{uid} и аватары avatars/{uid}
     implementation(libs.firebase.firestore)
 
     // Транзитивные зависимости firebase-auth из его POM: files()-jar POM не приносит,
@@ -100,6 +100,9 @@ dependencies {
 
     // collectAsStateWithLifecycle + сериализация ключей Nav3
     implementation(libs.androidx.lifecycle.runtime.compose)
+
+    // Загрузка аватаров из кэш-файлов приложения
+    implementation(libs.coil.compose)
     implementation(libs.kotlinx.serialization.core)
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.compose.material.icons.extended)
