@@ -19,14 +19,15 @@ import ru.tyupik.sharemylocation.ui.theme.ShareMyLocationTheme
 
 /**
  * Главный экран-контейнер: нижняя навигация с вкладками Карта, Друзья, Профиль.
- * Навигацию выполняет вызывающая сторона через [onSignedOut], [onEditProfile] и
- * [onOpenGroupEditor]: экран сам не знает про back stack, лямбды вызываются только
- * из коллекций Effect.
+ * Навигацию выполняет вызывающая сторона через [onSignedOut], [onEditProfile],
+ * [onOpenSharingSettings] и [onOpenGroupEditor]: экран сам не знает про back stack,
+ * лямбды вызываются только из коллекций Effect.
  */
 @Composable
 internal fun MainScreen(
     onSignedOut: () -> Unit,
     onEditProfile: () -> Unit,
+    onOpenSharingSettings: () -> Unit,
     onOpenGroupEditor: (String?) -> Unit,
     viewModel: MainViewModel = hiltViewModel(),
 ) {
@@ -45,6 +46,7 @@ internal fun MainScreen(
         pendingRequestsCount = uiState.pendingRequestsCount,
         onIntent = viewModel::onIntent,
         onEditProfile = onEditProfile,
+        onOpenSharingSettings = onOpenSharingSettings,
         onOpenGroupEditor = onOpenGroupEditor,
     )
 }
@@ -55,6 +57,7 @@ private fun MainContent(
     pendingRequestsCount: Int,
     onIntent: (MainIntent) -> Unit,
     onEditProfile: () -> Unit,
+    onOpenSharingSettings: () -> Unit,
     onOpenGroupEditor: (String?) -> Unit,
 ) {
     Scaffold(
@@ -79,6 +82,7 @@ private fun MainContent(
                 )
                 MainTab.PROFILE -> ProfileScreen(
                     onEditProfile = onEditProfile,
+                    onOpenSharingSettings = onOpenSharingSettings,
                     onSignOutClick = { onIntent(MainIntent.SignOutClicked) },
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -96,6 +100,7 @@ private fun MainContentPreview() {
             pendingRequestsCount = 0,
             onIntent = {},
             onEditProfile = {},
+            onOpenSharingSettings = {},
             onOpenGroupEditor = {},
         )
     }

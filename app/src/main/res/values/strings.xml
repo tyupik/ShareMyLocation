@@ -80,8 +80,25 @@
         <item quantity="other">%1$d участников</item>
     </plurals>
 
+    <!-- Настройки шаринга -->
+    <string name="sharing_title">Настройки шаринга</string>
+    <string name="sharing_enabled_label">Делиться геопозицией</string>
+    <string name="sharing_audience_all_friends">Все друзья</string>
+    <string name="sharing_audience_custom">Выбранные люди и группы</string>
+    <string name="sharing_section_people">Люди</string>
+    <string name="sharing_section_groups">Группы</string>
+    <string name="sharing_saving">Сохранение…</string>
+    <string name="sharing_hint_empty_audience">Сейчас локацию не увидит никто: выберите людей и группы или включите \"Все друзья\"</string>
+    <string name="sharing_empty_friends">Друзей пока нет</string>
+    <string name="sharing_empty_groups">Групп пока нет</string>
+    <string name="sharing_load_error">Не удалось загрузить настройки. Проверьте интернет и попробуйте снова</string>
+    <string name="sharing_retry">Повторить</string>
+    <string name="sharing_error_network">Нет подключения к сети. Проверьте интернет и попробуйте снова</string>
+    <string name="sharing_error_unexpected">Не удалось сохранить. Попробуйте ещё раз</string>
+
     <!-- Вкладка «Профиль» -->
     <string name="profile_edit">Редактировать</string>
+    <string name="profile_sharing_button">Делиться геопозицией</string>
     <string name="profile_sign_out">Выход</string>
     <string name="profile_error_network">Не удалось загрузить профиль. Проверьте интернет и попробуйте снова</string>
     <string name="profile_error_unexpected">Не удалось загрузить профиль. Попробуйте ещё раз</string>

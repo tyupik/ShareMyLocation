@@ -19,6 +19,7 @@ import ru.tyupik.sharemylocation.ui.auth.AuthScreen
 import ru.tyupik.sharemylocation.ui.groups.GroupEditorScreen
 import ru.tyupik.sharemylocation.ui.main.MainScreen
 import ru.tyupik.sharemylocation.ui.profilesetup.ProfileSetupScreen
+import ru.tyupik.sharemylocation.ui.sharing.SharingSettingsScreen
 
 /** Экраны корневой навигации приложения. */
 @Serializable
@@ -36,6 +37,10 @@ sealed interface AppDestination : NavKey {
     /** Редактор группы поверх Main: [groupId] == null — создание, иначе — редактирование. */
     @Serializable
     data class GroupEditor(val groupId: String?) : AppDestination
+
+    /** Настройки шаринга геолокации поверх Main. */
+    @Serializable
+    data object SharingSettings : AppDestination
 }
 
 /**
@@ -105,6 +110,9 @@ fun AppRoot(appViewModel: AppViewModel = hiltViewModel()) {
                         backStack.add(AppDestination.Auth)
                     },
                     onEditProfile = { backStack.add(AppDestination.ProfileSetup(isEditMode = true)) },
+                    // Пуш поверх Main, как GroupEditor: вкладка «Профиль» переживает возврат,
+                    // перечитка профиля и настроек — по ScreenShown.
+                    onOpenSharingSettings = { backStack.add(AppDestination.SharingSettings) },
                     // Пуш поверх Main: Main остаётся в стеке, вкладка «Друзья» переживает возврат,
                     // свежий состав приходит realtime-слушателем.
                     onOpenGroupEditor = { groupId ->
@@ -117,6 +125,9 @@ fun AppRoot(appViewModel: AppViewModel = hiltViewModel()) {
                     groupId = key.groupId,
                     onClosed = { backStack.removeLastOrNull() },
                 )
+            }
+            entry<AppDestination.SharingSettings> {
+                SharingSettingsScreen()
             }
         },
     )

@@ -45,6 +45,10 @@ import ru.tyupik.sharemylocation.business.groups.GroupsError;
 import ru.tyupik.sharemylocation.business.groups.GroupsException;
 import ru.tyupik.sharemylocation.business.profile.ProfileError;
 import ru.tyupik.sharemylocation.business.profile.ProfileException;
+import ru.tyupik.sharemylocation.business.sharing.SharingAudience;
+import ru.tyupik.sharemylocation.business.sharing.SharingError;
+import ru.tyupik.sharemylocation.business.sharing.SharingException;
+import ru.tyupik.sharemylocation.business.sharing.SharingSettings;
 
 /**
  * Вся работа с Firebase Auth и Firestore собрана в одном Java-классе.
@@ -80,6 +84,13 @@ public final class FirebaseBackend {
     private static final String FIELD_OWNER_ID = "ownerId";
     private static final String FIELD_NAME = "name";
     private static final String FIELD_MEMBER_UIDS = "memberUids";
+    private static final String SHARING_SETTINGS_COLLECTION = "sharingSettings";
+    private static final String FIELD_IS_ENABLED = "isEnabled";
+    private static final String FIELD_AUDIENCE = "audience";
+    private static final String FIELD_ALLOWED_UIDS = "allowedUids";
+    private static final String FIELD_ALLOWED_GROUP_IDS = "allowedGroupIds";
+    private static final String AUDIENCE_ALL_FRIENDS = "ALL_FRIENDS";
+    private static final String AUDIENCE_CUSTOM = "CUSTOM";
 
     /**
      * Максимальный размер JPEG аватара: лимит документа Firestore — 1 МБ,
@@ -951,6 +962,120 @@ public final class FirebaseBackend {
         FirebaseFirestoreException.Code code = ((FirebaseFirestoreException) cause).getCode();
         return code == FirebaseFirestoreException.Code.PERMISSION_DENIED
             || code == FirebaseFirestoreException.Code.NOT_FOUND;
+    }
+
+    // ------------------------------------------------------------------
+    // Фича «Шаринг геолокации»: настройки sharingSettings/{uid} (Фаза 5).
+    // ------------------------------------------------------------------
+
+    /**
+     * Настройки шаринга текущего пользователя: одноразовый get sharingSettings/{uid} (await, 30 c).
+     * Отсутствующий документ — НЕ ошибка: возвращается дефолт (SharingSettings.defaultOf);
+     * правило владельческое и resource не читает, поэтому PERMISSION_DENIED на отсутствующем
+     * документе невозможен и отдельный маппинг кодов, как в getGroup, не нужен.
+     */
+    public SharingSettings getSharingSettings() throws SharingException {
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) {
+            throw noCurrentUserForSharing();
+        }
+        Log.d(TAG, "getSharingSettings: start");
+        try {
+            DocumentSnapshot snapshot = await(
+                FirebaseFirestore.getInstance()
+                    .collection(SHARING_SETTINGS_COLLECTION)
+                    .document(firebaseUser.getUid())
+                    .get()
+            );
+            Log.d(TAG, "getSharingSettings: done, exists=" + snapshot.exists());
+            if (!snapshot.exists()) {
+                return SharingSettings.defaultOf(firebaseUser.getUid());
+            }
+            Timestamp updatedAt = snapshot.getTimestamp(FIELD_UPDATED_AT);
+            return new SharingSettings(
+                firebaseUser.getUid(),
+                Boolean.TRUE.equals(snapshot.getBoolean(FIELD_IS_ENABLED)),
+                toSharingAudience(snapshot.getString(FIELD_AUDIENCE)),
+                toStringList(snapshot.get(FIELD_ALLOWED_UIDS)),
+                toStringList(snapshot.get(FIELD_ALLOWED_GROUP_IDS)),
+                updatedAt != null
+                    ? updatedAt.getSeconds() * 1000L + updatedAt.getNanoseconds() / 1_000_000L
+                    : 0L
+            );
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            throw toSharingException(e);
+        }
+    }
+
+    /**
+     * Записывает полный снимок настроек шаринга: merge всех пяти полей
+     * {isEnabled, audience, allowedUids, allowedGroupIds, updatedAt = serverTimestamp}.
+     * Merge безопасен: правило владельческое и не использует resource/affectedKeys().
+     * audience — строка имени enum; состав списков валидирует клиент (ViewModel).
+     */
+    public void saveSharingSettings(
+        boolean isEnabled,
+        String audience,
+        List<String> allowedUids,
+        List<String> allowedGroupIds
+    ) throws SharingException {
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) {
+            throw noCurrentUserForSharing();
+        }
+        Log.d(TAG, "saveSharingSettings: start");
+        try {
+            Map<String, Object> data = new HashMap<>();
+            data.put(FIELD_IS_ENABLED, isEnabled);
+            data.put(FIELD_AUDIENCE, audience != null ? audience : AUDIENCE_ALL_FRIENDS);
+            data.put(FIELD_ALLOWED_UIDS, allowedUids != null ? allowedUids : new ArrayList<String>());
+            data.put(FIELD_ALLOWED_GROUP_IDS, allowedGroupIds != null
+                ? allowedGroupIds
+                : new ArrayList<String>());
+            data.put(FIELD_UPDATED_AT, FieldValue.serverTimestamp());
+            await(
+                FirebaseFirestore.getInstance()
+                    .collection(SHARING_SETTINGS_COLLECTION)
+                    .document(firebaseUser.getUid())
+                    .set(data, SetOptions.merge())
+            );
+            Log.d(TAG, "saveSharingSettings: done");
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            throw toSharingException(e);
+        }
+    }
+
+    /** Строка документа → SharingAudience; неизвестное значение трактуется как ALL_FRIENDS. */
+    private static SharingAudience toSharingAudience(String raw) {
+        if (AUDIENCE_CUSTOM.equals(raw)) {
+            return SharingAudience.CUSTOM;
+        }
+        if (raw != null && !AUDIENCE_ALL_FRIENDS.equals(raw)) {
+            Log.w(TAG, "toSharingAudience: неизвестная аудитория " + raw + " — трактую как ALL_FRIENDS");
+        }
+        return SharingAudience.ALL_FRIENDS;
+    }
+
+    private SharingException noCurrentUserForSharing() {
+        return new SharingException(
+            new SharingError.Unexpected("Нет текущего пользователя Firebase в операциях шаринга"),
+            null
+        );
+    }
+
+    /** SharingException проходит как есть, сеть — NetworkUnavailable, остальное — Unexpected с кодом. */
+    private SharingException toSharingException(Throwable throwable) {
+        Throwable cause = unwrapCause(throwable);
+        if (cause instanceof SharingException) {
+            return (SharingException) cause;
+        }
+        if (isNetworkError(cause)) {
+            return new SharingException(SharingError.NetworkUnavailable.INSTANCE, cause);
+        }
+        if (cause instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+        }
+        return new SharingException(new SharingError.Unexpected(describeCause(cause)), cause);
     }
 
     private ProfileException toProfileException(Throwable throwable) {

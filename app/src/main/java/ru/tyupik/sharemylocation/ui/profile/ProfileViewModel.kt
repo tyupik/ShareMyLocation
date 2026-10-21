@@ -40,6 +40,7 @@ class ProfileViewModel @Inject constructor(
         when (intent) {
             ProfileIntent.ScreenShown -> loadProfile()
             ProfileIntent.EditClicked -> onEditClicked()
+            ProfileIntent.SharingClicked -> onSharingClicked()
         }
     }
 
@@ -81,6 +82,10 @@ class ProfileViewModel @Inject constructor(
 
     private fun onEditClicked() {
         viewModelScope.launch { _effects.send(ProfileEffect.NavigateToEditProfile) }
+    }
+
+    private fun onSharingClicked() {
+        viewModelScope.launch { _effects.send(ProfileEffect.NavigateToSharingSettings) }
     }
 
     /** Ошибки, не завёрнутые в ProfileException, считаем Unexpected. */

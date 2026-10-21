@@ -19,10 +19,16 @@ sealed class ProfileIntent {
 
     /** Пользователь нажал «Редактировать». */
     data object EditClicked : ProfileIntent()
+
+    /** Пользователь нажал «Делиться геопозицией». */
+    data object SharingClicked : ProfileIntent()
 }
 
 /** One-off события экрана. */
 sealed class ProfileEffect {
     /** Открыть ProfileSetup в режиме редактирования; навигацию выполняет вызывающая сторона. */
     data object NavigateToEditProfile : ProfileEffect()
+
+    /** Открыть настройки шаринга; навигацию выполняет вызывающая сторона. */
+    data object NavigateToSharingSettings : ProfileEffect()
 }

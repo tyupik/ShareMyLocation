@@ -28,17 +28,20 @@ import ru.tyupik.sharemylocation.R
 import ru.tyupik.sharemylocation.ui.profile.composable.ProfileEditButton
 import ru.tyupik.sharemylocation.ui.profile.composable.ProfileHeader
 import ru.tyupik.sharemylocation.ui.profile.composable.ProfileInfoRow
+import ru.tyupik.sharemylocation.ui.profile.composable.ProfileSharingButton
 import ru.tyupik.sharemylocation.ui.profile.composable.ProfileSignOutButton
 import ru.tyupik.sharemylocation.ui.theme.ShareMyLocationTheme
 
 /**
- * Вкладка «Профиль»: показывает аватар, имя, email и телефон, кнопки «Редактировать» и «Выход».
- * Навигацию выполняет вызывающая сторона: [onEditProfile] вызывается только из коллекции Effect,
- * [onSignOutClick] передаёт действие в контракт MainScreen (выход живёт в MainViewModel).
+ * Вкладка «Профиль»: показывает аватар, имя, email и телефон, кнопки «Редактировать»,
+ * «Делиться геопозицией» и «Выход». Навигацию выполняет вызывающая сторона: [onEditProfile]
+ * и [onOpenSharingSettings] вызываются только из коллекции Effect, [onSignOutClick] передаёт
+ * действие в контракт MainScreen (выход живёт в MainViewModel).
  */
 @Composable
 internal fun ProfileScreen(
     onEditProfile: () -> Unit,
+    onOpenSharingSettings: () -> Unit,
     onSignOutClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = hiltViewModel(),
@@ -51,6 +54,7 @@ internal fun ProfileScreen(
         viewModel.effects.collect { effect ->
             when (effect) {
                 ProfileEffect.NavigateToEditProfile -> onEditProfile()
+                ProfileEffect.NavigateToSharingSettings -> onOpenSharingSettings()
             }
         }
     }
@@ -110,6 +114,8 @@ private fun ProfileContent(
         }
 
         ProfileEditButton(onClick = { onIntent(ProfileIntent.EditClicked) })
+
+        ProfileSharingButton(onClick = { onIntent(ProfileIntent.SharingClicked) })
 
         ProfileSignOutButton(onClick = onSignOutClick)
     }
