@@ -40,6 +40,9 @@ import ru.tyupik.sharemylocation.business.friends.FriendRequest;
 import ru.tyupik.sharemylocation.business.friends.FriendRequestStatus;
 import ru.tyupik.sharemylocation.business.friends.FriendsError;
 import ru.tyupik.sharemylocation.business.friends.FriendsException;
+import ru.tyupik.sharemylocation.business.groups.Group;
+import ru.tyupik.sharemylocation.business.groups.GroupsError;
+import ru.tyupik.sharemylocation.business.groups.GroupsException;
 import ru.tyupik.sharemylocation.business.profile.ProfileError;
 import ru.tyupik.sharemylocation.business.profile.ProfileException;
 
@@ -73,6 +76,10 @@ public final class FirebaseBackend {
     private static final String STATUS_PENDING = "PENDING";
     private static final String STATUS_ACCEPTED = "ACCEPTED";
     private static final String REQUEST_ID_SEPARATOR = "_";
+    private static final String GROUPS_COLLECTION = "groups";
+    private static final String FIELD_OWNER_ID = "ownerId";
+    private static final String FIELD_NAME = "name";
+    private static final String FIELD_MEMBER_UIDS = "memberUids";
 
     /**
      * Максимальный размер JPEG аватара: лимит документа Firestore — 1 МБ,
@@ -753,6 +760,197 @@ public final class FirebaseBackend {
             return firestoreException.getCode() + ": " + cause.getMessage();
         }
         return cause.getMessage();
+    }
+
+    // ------------------------------------------------------------------
+    // Фича «Группы»: личные «папки» владельца (ownerId); участники групп о них не знают.
+    // ------------------------------------------------------------------
+
+    /**
+     * Группа по id: одноразовый get. PERMISSION_DENIED и NOT_FOUND мапятся в GroupNotFound
+     * ДО общей классификации — только здесь, не в toGroupsException: правило groups читает
+     * resource.data, поэтому get несуществующего/чужого документа даёт PERMISSION_DENIED
+     * (NOT_FOUND возможен из локального кэша отсутствия) — для клиента это одно состояние;
+     * listen/create/update/delete сохраняют общую классификацию (Unexpected с кодом).
+     * Ветка !exists() — защита на случай снимка без deny (например, после смягчения правил).
+     */
+    public Group getGroup(String groupId) throws GroupsException {
+        Log.d(TAG, "getGroup: start");
+        try {
+            DocumentSnapshot snapshot = await(
+                FirebaseFirestore.getInstance()
+                    .collection(GROUPS_COLLECTION)
+                    .document(groupId)
+                    .get()
+            );
+            Log.d(TAG, "getGroup: done, exists=" + snapshot.exists());
+            if (!snapshot.exists()) {
+                throw new GroupsException(GroupsError.GroupNotFound.INSTANCE, null);
+            }
+            return toGroup(snapshot);
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            Throwable cause = unwrapCause(e);
+            if (isGroupAccessDenied(cause)) {
+                throw new GroupsException(GroupsError.GroupNotFound.INSTANCE, cause);
+            }
+            throw toGroupsException(e);
+        }
+    }
+
+    /**
+     * Создаёт groups/{autoId} с ownerId текущего пользователя, именем и составом memberUids
+     * (валидацию состава выполняют create-правила: memberUids ⊆ friendUids владельца, ≤ 100);
+     * createdAt/updatedAt — serverTimestamp. Авто-id генерируется офлайн, поэтому groupId
+     * известен сразу после успешного set.
+     */
+    public String createGroup(String name, List<String> memberUids) throws GroupsException {
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) {
+            throw noCurrentUserForGroups();
+        }
+        Log.d(TAG, "createGroup: start");
+        DocumentReference document = FirebaseFirestore.getInstance()
+            .collection(GROUPS_COLLECTION)
+            .document();
+        Map<String, Object> data = new HashMap<>();
+        data.put(FIELD_OWNER_ID, firebaseUser.getUid());
+        data.put(FIELD_NAME, name != null ? name : "");
+        data.put(FIELD_MEMBER_UIDS, memberUids != null ? memberUids : new ArrayList<String>());
+        data.put(FIELD_CREATED_AT, FieldValue.serverTimestamp());
+        data.put(FIELD_UPDATED_AT, FieldValue.serverTimestamp());
+        try {
+            await(document.set(data));
+            Log.d(TAG, "createGroup: done, id=" + document.getId());
+            return document.getId();
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            throw toGroupsException(e);
+        }
+    }
+
+    /**
+     * Обновляет группу merge'ем только {name, memberUids, updatedAt}: ownerId и createdAt
+     * не трогаются, поэтому правило update (affectedKeys().hasOnly) пропускает запись.
+     */
+    public void updateGroup(String groupId, String name, List<String> memberUids) throws GroupsException {
+        Log.d(TAG, "updateGroup: start");
+        try {
+            Map<String, Object> data = new HashMap<>();
+            data.put(FIELD_NAME, name != null ? name : "");
+            data.put(FIELD_MEMBER_UIDS, memberUids != null ? memberUids : new ArrayList<String>());
+            data.put(FIELD_UPDATED_AT, FieldValue.serverTimestamp());
+            await(
+                FirebaseFirestore.getInstance()
+                    .collection(GROUPS_COLLECTION)
+                    .document(groupId)
+                    .set(data, SetOptions.merge())
+            );
+            Log.d(TAG, "updateGroup: done");
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            throw toGroupsException(e);
+        }
+    }
+
+    /**
+     * Блокирующий delete документа groups/{groupId}. Id приходит только из realtime-списка
+     * (документ существует): для несуществующего resource == null, resource-based
+     * delete-правило даст deny — как declineFriendRequest.
+     */
+    public void deleteGroup(String groupId) throws GroupsException {
+        Log.d(TAG, "deleteGroup: start");
+        try {
+            await(
+                FirebaseFirestore.getInstance()
+                    .collection(GROUPS_COLLECTION)
+                    .document(groupId)
+                    .delete()
+            );
+            Log.d(TAG, "deleteGroup: done");
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            throw toGroupsException(e);
+        }
+    }
+
+    /**
+     * Realtime-слушатель групп текущего пользователя. Один equality-фильтр по ownerId,
+     * без orderBy: сортировка по имени выполняется на клиенте, композитные индексы не нужны.
+     */
+    public ListenerRegistration listenMyGroups(GroupsListener listener) throws GroupsException {
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) {
+            throw noCurrentUserForGroups();
+        }
+        Log.d(TAG, "listenMyGroups: start");
+        return FirebaseFirestore.getInstance()
+            .collection(GROUPS_COLLECTION)
+            .whereEqualTo(FIELD_OWNER_ID, firebaseUser.getUid())
+            .addSnapshotListener((snapshots, error) -> {
+                if (error != null) {
+                    Log.w(TAG, "listenMyGroups: error", error);
+                    listener.onUpdated(null, error);
+                    return;
+                }
+                List<Group> groups = new ArrayList<>();
+                if (snapshots != null) {
+                    for (DocumentSnapshot document : snapshots.getDocuments()) {
+                        groups.add(toGroup(document));
+                    }
+                }
+                listener.onUpdated(groups, null);
+            });
+    }
+
+    /** Колбэк realtime-слушателя групп; error != null означает обрыв потока данных. */
+    public interface GroupsListener {
+        void onUpdated(List<Group> groups, Exception error);
+    }
+
+    /** DocumentSnapshot → Group: Timestamp в millis, memberUids через toStringList. */
+    private Group toGroup(DocumentSnapshot snapshot) {
+        Timestamp createdAt = snapshot.getTimestamp(FIELD_CREATED_AT);
+        return new Group(
+            snapshot.getId(),
+            firstNonEmpty(snapshot.getString(FIELD_NAME), ""),
+            toStringList(snapshot.get(FIELD_MEMBER_UIDS)),
+            createdAt != null
+                ? createdAt.getSeconds() * 1000L + createdAt.getNanoseconds() / 1_000_000L
+                : 0L
+        );
+    }
+
+    private GroupsException noCurrentUserForGroups() {
+        return new GroupsException(
+            new GroupsError.Unexpected("Нет текущего пользователя Firebase в операциях групп"),
+            null
+        );
+    }
+
+    /** GroupsException проходит как есть, сеть — NetworkUnavailable, остальное — Unexpected с кодом. */
+    private GroupsException toGroupsException(Throwable throwable) {
+        Throwable cause = unwrapCause(throwable);
+        if (cause instanceof GroupsException) {
+            return (GroupsException) cause;
+        }
+        if (isNetworkError(cause)) {
+            return new GroupsException(GroupsError.NetworkUnavailable.INSTANCE, cause);
+        }
+        if (cause instanceof InterruptedException) {
+            Thread.currentThread().interrupt();
+        }
+        return new GroupsException(new GroupsError.Unexpected(describeCause(cause)), cause);
+    }
+
+    /**
+     * Только для getGroup: resource-based read-правило groups даёт PERMISSION_DENIED
+     * для несуществующего/чужого документа, NOT_FOUND — для отсутствия по кэшу;
+     * оба кода означают «группы нет для этого пользователя».
+     */
+    private static boolean isGroupAccessDenied(Throwable cause) {
+        if (!(cause instanceof FirebaseFirestoreException)) {
+            return false;
+        }
+        FirebaseFirestoreException.Code code = ((FirebaseFirestoreException) cause).getCode();
+        return code == FirebaseFirestoreException.Code.PERMISSION_DENIED
+            || code == FirebaseFirestoreException.Code.NOT_FOUND;
     }
 
     private ProfileException toProfileException(Throwable throwable) {

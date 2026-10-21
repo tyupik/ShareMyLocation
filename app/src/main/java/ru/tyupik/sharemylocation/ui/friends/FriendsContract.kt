@@ -25,6 +25,11 @@ data class FriendsUiState(
     val isFriendsLoadFailed: Boolean = false,
     /** Пассивная недоступность секции «Заявки» (упал realtime-поток); восстанавливается ScreenShown/Повторить. */
     val isRequestsLoadFailed: Boolean = false,
+    /** Секции «Группы»: realtime-список групп владельца (имя + число участников). */
+    val groups: List<GroupUiModel> = emptyList(),
+    val isGroupsLoading: Boolean = true,
+    /** Пассивная недоступность секции «Группы» (упал realtime-поток); восстанавливается ScreenShown/Повторить. */
+    val isGroupsLoadFailed: Boolean = false,
 )
 
 /** Состояние секции поиска. */
@@ -59,6 +64,12 @@ sealed class FriendsIntent {
 
     data class RemoveFriendClicked(val uid: String) : FriendsIntent()
 
+    /** Нажата кнопка «Создать» в секции групп — открыть редактор в режиме создания. */
+    data object CreateGroupClicked : FriendsIntent()
+
+    /** Нажата карточка группы [groupId] — открыть редактор этой группы. */
+    data class GroupClicked(val groupId: String) : FriendsIntent()
+
     data object ErrorDismissed : FriendsIntent()
 }
 
@@ -66,4 +77,7 @@ sealed class FriendsIntent {
 sealed class FriendsEffect {
     /** Заявка в друзья успешно отправлена — показываем Snackbar. */
     data object FriendRequestSent : FriendsEffect()
+
+    /** Открыть редактор группы поверх Main; [groupId] == null — режим создания. */
+    data class OpenGroupEditor(val groupId: String?) : FriendsEffect()
 }

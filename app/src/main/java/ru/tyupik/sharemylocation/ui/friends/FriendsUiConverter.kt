@@ -4,6 +4,7 @@ import javax.inject.Inject
 import ru.tyupik.sharemylocation.business.common.User
 import ru.tyupik.sharemylocation.business.friends.FriendRequest
 import ru.tyupik.sharemylocation.business.friends.FriendsError
+import ru.tyupik.sharemylocation.business.groups.Group
 
 /** Ui-модель друга/найденного пользователя: [avatarPath] резолвится асинхронно. */
 data class FriendUiModel(
@@ -20,6 +21,13 @@ data class FriendRequestUiModel(
     val fromName: String,
     val fromAvatarVersion: Long,
     val avatarPath: String?,
+)
+
+/** Ui-модель группы в секции «Группы»: карточка показывает имя и число участников. */
+data class GroupUiModel(
+    val groupId: String,
+    val name: String,
+    val memberCount: Int,
 )
 
 /** Ошибки фичи «Друзья» в терминах Ui-слоя. */
@@ -57,6 +65,13 @@ class FriendsUiConverter @Inject constructor() {
         fromName = request.fromName,
         fromAvatarVersion = request.fromAvatarVersion,
         avatarPath = null,
+    )
+
+    /** Имена участников на вкладке не нужны — только их число. */
+    fun convertGroup(group: Group): GroupUiModel = GroupUiModel(
+        groupId = group.groupId,
+        name = group.name,
+        memberCount = group.memberUids.size,
     )
 
     fun convertError(error: FriendsError): FriendsUiError = when (error) {

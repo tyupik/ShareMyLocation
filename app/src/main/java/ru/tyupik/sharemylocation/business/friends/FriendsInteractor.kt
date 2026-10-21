@@ -27,7 +27,7 @@ interface FriendsInteractor {
 
     /**
      * Удаление друга из своего списка (и себя из списка друга).
-     * TODO(фаза карты/шеринга): каскадно чистить groups/sharingSettings удалённого друга.
+     * TODO(фаза 5, шеринг): каскадно чистить memberUids групп и sharingSettings удалённого друга.
      */
     suspend fun removeFriend(friendUid: String): Result<Unit>
 

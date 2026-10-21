@@ -16,6 +16,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import kotlinx.serialization.Serializable
 import ru.tyupik.sharemylocation.ui.auth.AuthScreen
+import ru.tyupik.sharemylocation.ui.groups.GroupEditorScreen
 import ru.tyupik.sharemylocation.ui.main.MainScreen
 import ru.tyupik.sharemylocation.ui.profilesetup.ProfileSetupScreen
 
@@ -31,6 +32,10 @@ sealed interface AppDestination : NavKey {
 
     @Serializable
     data object Main : AppDestination
+
+    /** Редактор группы поверх Main: [groupId] == null — создание, иначе — редактирование. */
+    @Serializable
+    data class GroupEditor(val groupId: String?) : AppDestination
 }
 
 /**
@@ -100,6 +105,17 @@ fun AppRoot(appViewModel: AppViewModel = hiltViewModel()) {
                         backStack.add(AppDestination.Auth)
                     },
                     onEditProfile = { backStack.add(AppDestination.ProfileSetup(isEditMode = true)) },
+                    // Пуш поверх Main: Main остаётся в стеке, вкладка «Друзья» переживает возврат,
+                    // свежий состав приходит realtime-слушателем.
+                    onOpenGroupEditor = { groupId ->
+                        backStack.add(AppDestination.GroupEditor(groupId))
+                    },
+                )
+            }
+            entry<AppDestination.GroupEditor> { key ->
+                GroupEditorScreen(
+                    groupId = key.groupId,
+                    onClosed = { backStack.removeLastOrNull() },
                 )
             }
         },

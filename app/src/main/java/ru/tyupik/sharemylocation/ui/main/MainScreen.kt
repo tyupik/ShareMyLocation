@@ -19,13 +19,15 @@ import ru.tyupik.sharemylocation.ui.theme.ShareMyLocationTheme
 
 /**
  * Главный экран-контейнер: нижняя навигация с вкладками Карта, Друзья, Профиль.
- * Навигацию выполняет вызывающая сторона через [onSignedOut] и [onEditProfile]:
- * экран сам не знает про back stack, лямбды вызываются только из коллекций Effect.
+ * Навигацию выполняет вызывающая сторона через [onSignedOut], [onEditProfile] и
+ * [onOpenGroupEditor]: экран сам не знает про back stack, лямбды вызываются только
+ * из коллекций Effect.
  */
 @Composable
 internal fun MainScreen(
     onSignedOut: () -> Unit,
     onEditProfile: () -> Unit,
+    onOpenGroupEditor: (String?) -> Unit,
     viewModel: MainViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -43,6 +45,7 @@ internal fun MainScreen(
         pendingRequestsCount = uiState.pendingRequestsCount,
         onIntent = viewModel::onIntent,
         onEditProfile = onEditProfile,
+        onOpenGroupEditor = onOpenGroupEditor,
     )
 }
 
@@ -52,6 +55,7 @@ private fun MainContent(
     pendingRequestsCount: Int,
     onIntent: (MainIntent) -> Unit,
     onEditProfile: () -> Unit,
+    onOpenGroupEditor: (String?) -> Unit,
 ) {
     Scaffold(
         bottomBar = {
@@ -69,7 +73,10 @@ private fun MainContent(
         ) {
             when (selectedTab) {
                 MainTab.MAP -> MapTabPlaceholder(modifier = Modifier.fillMaxSize())
-                MainTab.FRIENDS -> FriendsScreen(modifier = Modifier.fillMaxSize())
+                MainTab.FRIENDS -> FriendsScreen(
+                    onOpenGroupEditor = onOpenGroupEditor,
+                    modifier = Modifier.fillMaxSize(),
+                )
                 MainTab.PROFILE -> ProfileScreen(
                     onEditProfile = onEditProfile,
                     onSignOutClick = { onIntent(MainIntent.SignOutClicked) },
@@ -89,6 +96,7 @@ private fun MainContentPreview() {
             pendingRequestsCount = 0,
             onIntent = {},
             onEditProfile = {},
+            onOpenGroupEditor = {},
         )
     }
 }

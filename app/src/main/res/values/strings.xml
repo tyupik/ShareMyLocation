@@ -51,6 +51,35 @@
     <string name="friends_load_error">Не удалось загрузить. Проверьте интернет и попробуйте снова</string>
     <string name="friends_retry">Повторить</string>
 
+    <!-- Группы: секция на вкладке «Друзья» и редактор группы -->
+    <string name="groups_section">Группы</string>
+    <string name="groups_create_button">Создать</string>
+    <string name="groups_empty">Групп пока нет</string>
+    <string name="groups_editor_title_create">Новая группа</string>
+    <string name="groups_editor_title_edit">Редактирование группы</string>
+    <string name="groups_editor_name_label">Название группы</string>
+    <string name="groups_editor_selected_count">Выбрано участников: %1$d</string>
+    <string name="groups_editor_save_button">Сохранить</string>
+    <string name="groups_editor_delete_button">Удалить группу</string>
+    <string name="groups_delete_dialog_title">Удалить группу?</string>
+    <string name="groups_delete_dialog_text">Группа «%1$s» будет удалена. Друзья останутся в вашем списке, участники не узнают об удалении</string>
+    <string name="groups_delete_dialog_confirm">Удалить</string>
+    <string name="groups_delete_dialog_cancel">Отмена</string>
+    <string name="groups_load_error">Не удалось загрузить группу. Проверьте интернет и попробуйте снова</string>
+    <string name="groups_retry">Повторить</string>
+    <string name="groups_error_network">Нет подключения к сети. Проверьте интернет и попробуйте снова</string>
+    <string name="groups_error_empty_name">Введите название группы</string>
+    <string name="groups_error_name_too_long">Название слишком длинное (максимум 50 символов)</string>
+    <string name="groups_error_group_not_found">Группа не найдена. Возможно, она уже удалена</string>
+    <string name="groups_error_unexpected">Не удалось выполнить действие. Попробуйте ещё раз</string>
+
+    <plurals name="groups_member_count">
+        <item quantity="one">%1$d участник</item>
+        <item quantity="few">%1$d участника</item>
+        <item quantity="many">%1$d участников</item>
+        <item quantity="other">%1$d участников</item>
+    </plurals>
+
     <!-- Вкладка «Профиль» -->
     <string name="profile_edit">Редактировать</string>
     <string name="profile_sign_out">Выход</string>

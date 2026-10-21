@@ -23,13 +23,14 @@ import ru.tyupik.sharemylocation.business.friends.FriendRequest
 import ru.tyupik.sharemylocation.business.friends.FriendsError
 import ru.tyupik.sharemylocation.business.friends.FriendsException
 import ru.tyupik.sharemylocation.business.friends.FriendsInteractor
+import ru.tyupik.sharemylocation.business.groups.GroupsInteractor
 import ru.tyupik.sharemylocation.business.profile.PhoneNormalizer
 import ru.tyupik.sharemylocation.business.profile.ProfileInteractor
 
 /**
- * ViewModel вкладки «Друзья». Realtime-потоки друзей и заявок перезапускаются при каждом
+ * ViewModel вкладки «Друзья». Realtime-потоки друзей, заявок и групп перезапускаются при каждом
  * ScreenShown (flatMapLatest на триггер); потоки независимы — ошибка одного показывает
- * inline-состояние своей секции, не ломая другую. Аватары дозагружаются по одному
+ * inline-состояние своей секции, не ломая другие. Аватары дозагружаются по одному
  * через [ProfileInteractor.getAvatar] и кэшируются по «uid:версия», чтобы списки
  * не мигали плейсхолдером при обновлениях.
  * Единственная публичная точка входа для UI — [onIntent].
@@ -38,6 +39,7 @@ import ru.tyupik.sharemylocation.business.profile.ProfileInteractor
 @HiltViewModel
 class FriendsViewModel @Inject constructor(
     private val friendsInteractor: FriendsInteractor,
+    private val groupsInteractor: GroupsInteractor,
     private val profileInteractor: ProfileInteractor,
     private val friendsUiConverter: FriendsUiConverter,
 ) : ViewModel() {
@@ -75,15 +77,17 @@ class FriendsViewModel @Inject constructor(
             is FriendsIntent.AcceptRequestClicked -> acceptRequest(intent.fromUid)
             is FriendsIntent.DeclineRequestClicked -> declineRequest(intent.fromUid)
             is FriendsIntent.RemoveFriendClicked -> removeFriend(intent.uid)
+            FriendsIntent.CreateGroupClicked -> openGroupEditor(null)
+            is FriendsIntent.GroupClicked -> openGroupEditor(intent.groupId)
             FriendsIntent.ErrorDismissed -> _uiState.update { it.copy(actionError = null) }
         }
     }
 
     /**
      * Перезапуск realtime-потоков трактуется как чистый лист: вместе с триггером сбрасываем
-     * [FriendsUiState.actionError], оба флага пассивной недоступности секций и поиск
+     * [FriendsUiState.actionError], все три флага пассивной недоступности секций и поиск
      * (вход на вкладку = чистый лист поиска: searchQuery, searchState, busyUid).
-     * Списки friends/incomingRequests НЕ чистим — realtime-потоки доставят свежие данные.
+     * Списки friends/incomingRequests/groups НЕ чистим — realtime-потоки доставят свежие данные.
      * Следствие (осознанно): guard `busyUid != null → return` после сброса не защищает от
      * повторного клика по действию, оставшемуся в полёте с предыдущего показа вкладки, —
      * вечный спиннер после logout хуже теоретического дубля, а серверные операции устойчивы.
@@ -97,6 +101,7 @@ class FriendsViewModel @Inject constructor(
                 actionError = null,
                 isFriendsLoadFailed = false,
                 isRequestsLoadFailed = false,
+                isGroupsLoadFailed = false,
                 searchQuery = "",
                 searchState = FriendsSearchUiState.Idle,
                 busyUid = null,
@@ -149,6 +154,30 @@ class FriendsViewModel @Inject constructor(
                     resolveRequestAvatars()
                 }
         }
+        viewModelScope.launch {
+            refreshTrigger
+                .flatMapLatest {
+                    groupsInteractor.observeGroups()
+                        .map { groups -> groups.map(friendsUiConverter::convertGroup) }
+                        .catch { throwable ->
+                            // Пассивное падение секции — inline-состояние, не баннер действия.
+                            Log.w(TAG, "Realtime-поток групп прервался", throwable)
+                            _uiState.update { state ->
+                                state.copy(isGroupsLoading = false, isGroupsLoadFailed = true)
+                            }
+                        }
+                }
+                .collect { groups ->
+                    _uiState.update { state ->
+                        state.copy(isGroupsLoading = false, groups = groups)
+                    }
+                }
+        }
+    }
+
+    /** Открытие редактора группы поверх Main — только через Effect, без прямых колбэков. */
+    private fun openGroupEditor(groupId: String?) {
+        viewModelScope.launch { _effects.send(FriendsEffect.OpenGroupEditor(groupId)) }
     }
 
     private fun onSearchQueryChanged(value: String) =
