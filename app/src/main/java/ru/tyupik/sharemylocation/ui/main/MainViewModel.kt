@@ -15,13 +15,12 @@ import kotlinx.coroutines.launch
 import ru.tyupik.sharemylocation.business.auth.AuthInteractor
 
 /**
- * ViewModel временного главного экрана: показывает, кто вошёл, и выполняет выход.
+ * ViewModel главного экрана-контейнера: хранит выбранную вкладку и выполняет выход из аккаунта.
  * Единственная публичная точка входа для UI — [onIntent].
  */
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val authInteractor: AuthInteractor,
-    private val mainUiConverter: MainUiConverter,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState())
@@ -32,19 +31,8 @@ class MainViewModel @Inject constructor(
 
     fun onIntent(intent: MainIntent) {
         when (intent) {
+            is MainIntent.TabSelected -> _uiState.update { it.copy(selectedTab = intent.tab) }
             MainIntent.SignOutClicked -> signOut()
-            MainIntent.ScreenShown -> refreshUser()
-        }
-    }
-
-    /**
-     * Перечитывает текущего пользователя с нуля: ViewModel может переживать повторный
-     * вход на экран, поэтому полагаться только на init нельзя.
-     */
-    private fun refreshUser() {
-        viewModelScope.launch {
-            _uiState.value = MainUiState()
-            _uiState.update { it.copy(userEmail = mainUiConverter.convert(authInteractor.getCurrentUser()).userEmail) }
         }
     }
 

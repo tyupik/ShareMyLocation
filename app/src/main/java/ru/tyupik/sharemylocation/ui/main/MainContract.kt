@@ -1,17 +1,27 @@
 package ru.tyupik.sharemylocation.ui.main
 
-/** Состояние временного главного экрана. */
+/** Вкладки главного экрана. */
+enum class MainTab {
+    MAP,
+    FRIENDS,
+    PROFILE,
+}
+
+/**
+ * SSOT главного экрана-контейнера.
+ * Содержимое вкладок — заглушки, поэтому состояние состоит только из выбранной вкладки.
+ */
 data class MainUiState(
-    /** Email вошедшего пользователя; null, если сессия не найдена. */
-    val userEmail: String? = null,
+    val selectedTab: MainTab = MainTab.MAP,
 )
 
 /** Действия пользователя. */
 sealed class MainIntent {
-    data object SignOutClicked : MainIntent()
+    /** Пользователь выбрал вкладку в нижней навигации. */
+    data class TabSelected(val tab: MainTab) : MainIntent()
 
-    /** Экран показан (в том числе повторно) — перечитать текущего пользователя. */
-    data object ScreenShown : MainIntent()
+    /** Пользователь нажал «Выход» на вкладке «Профиль». */
+    data object SignOutClicked : MainIntent()
 }
 
 /** One-off события экрана. */
