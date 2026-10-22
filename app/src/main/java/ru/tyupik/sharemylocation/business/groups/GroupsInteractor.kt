@@ -12,7 +12,11 @@ interface GroupsInteractor {
     /** Realtime-поток групп текущего пользователя, отсортированный по имени (lowercase). */
     fun observeGroups(): Flow<List<Group>>
 
-    /** Одноразовое чтение группы; несуществующая/чужая — [GroupsError.GroupNotFound]. */
+    /**
+     * Одноразовое чтение группы; несуществующая, а также группа, где текущий пользователь
+     * не владелец и не участник (memberUids), — [GroupsError.GroupNotFound]. С Фазы 7 участник
+     * группы может читать её документ (проверка видимости карты).
+     */
     suspend fun getGroup(groupId: String): Result<Group>
 
     /** Создание группы с именем [rawName] и составом [memberUids]; возвращает groupId созданной группы. */

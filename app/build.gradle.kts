@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -6,6 +8,15 @@ plugins {
     alias(libs.plugins.hilt)
     id("com.google.gms.google-services")
 }
+
+// Ключ Google Maps SDK (Фаза 7): читается из local.properties (строка MAPS_API_KEY=...),
+// отсутствует или пуст — карта не инициализируется, экран показывает подсказку (не падает).
+val mapsApiKey: String = Properties().apply {
+    val localProperties = rootProject.file("local.properties")
+    if (localProperties.exists()) {
+        localProperties.inputStream().use(::load)
+    }
+}.getProperty("MAPS_API_KEY", "")
 
 android {
     namespace = "ru.tyupik.sharemylocation"
@@ -21,6 +32,11 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Ключ карты уходит и в манифест (meta-data com.google.android.geo.API_KEY),
+        // и в BuildConfig — экран проверяет пустоту ключа до инициализации карты.
+        manifestPlaceholders["mapsApiKey"] = mapsApiKey
+        buildConfigField("String", "MAPS_API_KEY", "\"$mapsApiKey\"")
     }
 
     buildTypes {
@@ -37,6 +53,8 @@ android {
     }
     buildFeatures {
         compose = true
+        // В AGP 9 генерация BuildConfig выключена по умолчанию; нужна для MAPS_API_KEY.
+        buildConfig = true
     }
 }
 
@@ -84,6 +102,9 @@ dependencies {
     // FusedLocationProviderClient для foreground-сервиса отправки геолокации (Фаза 6).
     // Обычный maven-артефакт: резолвится из Kotlin напрямую (в отличие от firebase-auth).
     implementation(libs.play.services.location)
+
+    // GoogleMap в Compose (Фаза 7): play-services-maps идёт транзитивно.
+    implementation(libs.maps.compose)
 
     // Google Sign-In через Credential Manager
     implementation(libs.androidx.credentials)

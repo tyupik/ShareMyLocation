@@ -13,7 +13,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ru.tyupik.sharemylocation.ui.friends.FriendsScreen
 import ru.tyupik.sharemylocation.ui.main.composable.MainBottomBar
-import ru.tyupik.sharemylocation.ui.main.composable.MapTabPlaceholder
+import ru.tyupik.sharemylocation.ui.map.MapScreen
 import ru.tyupik.sharemylocation.ui.profile.ProfileScreen
 import ru.tyupik.sharemylocation.ui.theme.ShareMyLocationTheme
 
@@ -75,7 +75,7 @@ private fun MainContent(
                 .padding(innerPadding),
         ) {
             when (selectedTab) {
-                MainTab.MAP -> MapTabPlaceholder(modifier = Modifier.fillMaxSize())
+                MainTab.MAP -> MapScreen(modifier = Modifier.fillMaxSize())
                 MainTab.FRIENDS -> FriendsScreen(
                     onOpenGroupEditor = onOpenGroupEditor,
                     modifier = Modifier.fillMaxSize(),

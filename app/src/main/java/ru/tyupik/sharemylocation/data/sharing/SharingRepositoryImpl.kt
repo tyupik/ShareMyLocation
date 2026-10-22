@@ -36,6 +36,11 @@ class SharingRepositoryImpl @Inject constructor(
             withContext(Dispatchers.IO) { backend.getSharingSettings() }
         }.mapFailure { toSharingException(it) }
 
+    override suspend fun getSettingsByUid(uid: String): Result<SharingSettings> =
+        runSuspendCatching {
+            withContext(Dispatchers.IO) { backend.getSharingSettingsByUid(uid) }
+        }.mapFailure { toSharingException(it) }
+
     override suspend fun saveSettings(settings: SharingSettings): Result<Unit> =
         runSuspendCatching {
             withContext(Dispatchers.IO) {

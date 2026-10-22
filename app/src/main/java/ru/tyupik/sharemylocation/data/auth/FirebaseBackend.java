@@ -41,6 +41,8 @@ import ru.tyupik.sharemylocation.business.friends.FriendRequest;
 import ru.tyupik.sharemylocation.business.friends.FriendRequestStatus;
 import ru.tyupik.sharemylocation.business.friends.FriendsError;
 import ru.tyupik.sharemylocation.business.friends.FriendsException;
+import ru.tyupik.sharemylocation.business.map.FriendLocation;
+import ru.tyupik.sharemylocation.business.map.MapQueryDeniedException;
 import ru.tyupik.sharemylocation.business.groups.Group;
 import ru.tyupik.sharemylocation.business.groups.GroupsError;
 import ru.tyupik.sharemylocation.business.groups.GroupsException;
@@ -784,10 +786,13 @@ public final class FirebaseBackend {
     /**
      * Группа по id: одноразовый get. PERMISSION_DENIED и NOT_FOUND мапятся в GroupNotFound
      * ДО общей классификации — только здесь, не в toGroupsException: правило groups читает
-     * resource.data, поэтому get несуществующего/чужого документа даёт PERMISSION_DENIED
+     * resource.data, поэтому get несуществующего документа даёт PERMISSION_DENIED
      * (NOT_FOUND возможен из локального кэша отсутствия) — для клиента это одно состояние;
      * listen/create/update/delete сохраняют общую классификацию (Unexpected с кодом).
      * Ветка !exists() — защита на случай снимка без deny (например, после смягчения правил).
+     * С Фазы 7 get-правило пускает и участника группы (memberUids): участник-не-владелец
+     * получает данные группы (раньше чужая = GroupNotFound). UI-путей к чужим группам нет —
+     * участник вызывает getGroup только проверка видимости карты (MapInteractorImpl).
      */
     public Group getGroup(String groupId) throws GroupsException {
         Log.d(TAG, "getGroup: start");
@@ -1134,6 +1139,186 @@ public final class FirebaseBackend {
     /** Колбэк realtime-слушателя настройки isEnabled шаринга; error != null — обрыв потока данных. */
     public interface SharingEnabledListener {
         void onUpdated(Boolean isEnabled, Exception error);
+    }
+
+    /**
+     * Настройки шаринга произвольного пользователя (Фаза 7, карта видимости):
+     * одноразовый get sharingSettings/{uid}. !exists() ИЛИ PERMISSION_DENIED/NOT_FOUND —
+     * НЕ ошибка: возвращается дефолт SharingSettings.defaultOf(uid), трактуемый как
+     * «пользователь не делится локацией». Правило чтения другом не читает resource, поэтому
+     * deny отсутствующего документа невозможен: NOT_FOUND приходит для несуществующего
+     * документа, PERMISSION_DENIED — для не-друга; оба означают «настроек нет для читателя».
+     * Использует существующие toSharingAudience/toStringList.
+     */
+    public SharingSettings getSharingSettingsByUid(String uid) throws SharingException {
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) {
+            throw noCurrentUserForSharing();
+        }
+        Log.d(TAG, "getSharingSettingsByUid: start");
+        try {
+            DocumentSnapshot snapshot = await(
+                FirebaseFirestore.getInstance()
+                    .collection(SHARING_SETTINGS_COLLECTION)
+                    .document(uid)
+                    .get()
+            );
+            Log.d(TAG, "getSharingSettingsByUid: done, exists=" + snapshot.exists());
+            if (!snapshot.exists()) {
+                return SharingSettings.defaultOf(uid);
+            }
+            Timestamp updatedAt = snapshot.getTimestamp(FIELD_UPDATED_AT);
+            return new SharingSettings(
+                uid,
+                Boolean.TRUE.equals(snapshot.getBoolean(FIELD_IS_ENABLED)),
+                toSharingAudience(snapshot.getString(FIELD_AUDIENCE)),
+                toStringList(snapshot.get(FIELD_ALLOWED_UIDS)),
+                toStringList(snapshot.get(FIELD_ALLOWED_GROUP_IDS)),
+                updatedAt != null
+                    ? updatedAt.getSeconds() * 1000L + updatedAt.getNanoseconds() / 1_000_000L
+                    : 0L
+            );
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            Throwable cause = unwrapCause(e);
+            if (isSharingAccessDenied(cause)) {
+                return SharingSettings.defaultOf(uid);
+            }
+            throw toSharingException(e);
+        }
+    }
+
+    /**
+     * Realtime-слушатель точек локаций пользователей по uid одним запросом
+     * whereIn(FieldPath.documentId(), uids). Лимит whereIn — 10 элементов на запрос;
+     * чанкование и слияние чанков выполняет Kotlin-репозиторий (MapRepositoryImpl).
+     * PERMISSION_DENIED оборачивается в MapQueryDeniedException — для Kotlin-репозитория
+     * это сигнал fallback'а: гдеIn с get()-правилом друга не provable, запрос отклоняется
+     * целиком (rules are not filters); остальные ошибки уходят как есть — обрыв потока.
+     * Пустой список uids: слушатель не создаётся, сразу отдаётся пустая карта
+     * (whereIn с пустым списком Firestore запрещает).
+     */
+    public ListenerRegistration listenLocationsByUids(List<String> uids, LocationsListener listener)
+        throws SharingException {
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) {
+            throw noCurrentUserForSharing();
+        }
+        if (uids == null || uids.isEmpty()) {
+            listener.onUpdated(new HashMap<>(), null);
+            return emptyRegistration();
+        }
+        Log.d(TAG, "listenLocationsByUids: start, size=" + uids.size());
+        return FirebaseFirestore.getInstance()
+            .collection(LOCATIONS_COLLECTION)
+            .whereIn(FieldPath.documentId(), uids)
+            .addSnapshotListener((snapshots, error) -> {
+                if (error != null) {
+                    Log.w(TAG, "listenLocationsByUids: error", error);
+                    listener.onUpdated(null, isPermissionDenied(error)
+                        ? new MapQueryDeniedException(error)
+                        : error);
+                    return;
+                }
+                Map<String, FriendLocation> locations = new HashMap<>();
+                if (snapshots != null) {
+                    for (DocumentSnapshot document : snapshots.getDocuments()) {
+                        FriendLocation location = toFriendLocation(document);
+                        if (location != null) {
+                            locations.put(location.getUid(), location);
+                        }
+                    }
+                }
+                listener.onUpdated(locations, null);
+            });
+    }
+
+    /**
+     * Realtime-слушатель точки локации одного пользователя (Фаза 7, fallback карты):
+     * документ locations/{uid}; отсутствующий документ — пустая карта, не ошибка.
+     * По-документное чтение оценивается правилами по конкретному документу, поэтому
+     * get()-правило друга работает там, где whereIn-запрос отклоняется целиком
+     * (см. KDoc listenLocationsByUids).
+     */
+    public ListenerRegistration listenLocationByUid(String uid, LocationsListener listener)
+        throws SharingException {
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) {
+            throw noCurrentUserForSharing();
+        }
+        Log.d(TAG, "listenLocationByUid: start");
+        return FirebaseFirestore.getInstance()
+            .collection(LOCATIONS_COLLECTION)
+            .document(uid)
+            .addSnapshotListener((snapshot, error) -> {
+                if (error != null) {
+                    Log.w(TAG, "listenLocationByUid: error", error);
+                    listener.onUpdated(null, error);
+                    return;
+                }
+                Map<String, FriendLocation> locations = new HashMap<>();
+                if (snapshot != null && snapshot.exists()) {
+                    FriendLocation location = toFriendLocation(snapshot);
+                    if (location != null) {
+                        locations.put(location.getUid(), location);
+                    }
+                }
+                listener.onUpdated(locations, null);
+            });
+    }
+
+    /** DocumentSnapshot locations/{uid} → FriendLocation; null, если geo отсутствует. */
+    private FriendLocation toFriendLocation(DocumentSnapshot snapshot) {
+        GeoPoint geo = snapshot.getGeoPoint(FIELD_GEO);
+        if (geo == null) {
+            Log.w(TAG, "toFriendLocation: в документе " + snapshot.getId() + " нет geo");
+            return null;
+        }
+        Timestamp updatedAt = snapshot.getTimestamp(FIELD_UPDATED_AT);
+        Double accuracy = snapshot.getDouble(FIELD_ACCURACY);
+        return new FriendLocation(
+            snapshot.getId(),
+            geo.getLatitude(),
+            geo.getLongitude(),
+            accuracy != null ? accuracy : 0.0,
+            updatedAt != null
+                ? updatedAt.getSeconds() * 1000L + updatedAt.getNanoseconds() / 1_000_000L
+                : 0L
+        );
+    }
+
+    /** Слушатель-пустышка для пустого списка uid: снимать нечего, remove() ничего не делает. */
+    private static ListenerRegistration emptyRegistration() {
+        return new ListenerRegistration() {
+            @Override
+            public void remove() {
+                // Пустой запрос: реальный слушатель не создавался.
+            }
+        };
+    }
+
+    /** Колбэк realtime-слушателя точек локаций; error != null означает обрыв потока данных. */
+    public interface LocationsListener {
+        void onUpdated(Map<String, FriendLocation> locations, Exception error);
+    }
+
+    /**
+     * Только для getSharingSettingsByUid: PERMISSION_DENIED (не друг) и NOT_FOUND
+     * (документа нет) означают «настроек нет для этого читателя» = «не шарит».
+     */
+    private static boolean isSharingAccessDenied(Throwable cause) {
+        if (!(cause instanceof FirebaseFirestoreException)) {
+            return false;
+        }
+        FirebaseFirestoreException.Code code = ((FirebaseFirestoreException) cause).getCode();
+        return code == FirebaseFirestoreException.Code.PERMISSION_DENIED
+            || code == FirebaseFirestoreException.Code.NOT_FOUND;
+    }
+
+    /** Только для listenLocationsByUids: сам код ошибки, без unwrap (listener отдаёт уже причину). */
+    private static boolean isPermissionDenied(Exception error) {
+        return error instanceof FirebaseFirestoreException
+            && ((FirebaseFirestoreException) error).getCode()
+                == FirebaseFirestoreException.Code.PERMISSION_DENIED;
     }
 
     /** Строка документа → SharingAudience; неизвестное значение трактуется как ALL_FRIENDS. */

@@ -12,6 +12,9 @@ class SharingInteractorImpl @Inject constructor(
 
     override suspend fun getSettings(): Result<SharingSettings> = sharingRepository.getSettings()
 
+    override suspend fun getSettingsByUid(uid: String): Result<SharingSettings> =
+        sharingRepository.getSettingsByUid(uid)
+
     override suspend fun saveSettings(settings: SharingSettings): Result<Unit> =
         sharingRepository.saveSettings(settings)
 

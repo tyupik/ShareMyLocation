@@ -16,6 +16,13 @@ interface SharingRepository {
     suspend fun getSettings(): Result<SharingSettings>
 
     /**
+     * Одноразовое чтение настроек произвольного пользователя (Фаза 7, карта видимости).
+     * Чужой или отсутствующий документ — не ошибка: возвращается [SharingSettings.default]
+     * («пользователь не делится локацией»); неуспех — только сеть/Unexpected.
+     */
+    suspend fun getSettingsByUid(uid: String): Result<SharingSettings>
+
+    /**
      * Записывает полный снимок настроек (merge всех пяти полей, updatedAt = serverTimestamp).
      * Идемпотентна: повторная запись того же снимка не меняет смысл документа.
      */

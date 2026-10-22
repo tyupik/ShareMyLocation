@@ -16,7 +16,12 @@ interface GroupsRepository {
      */
     fun observeMyGroups(): Flow<List<Group>>
 
-    /** Одноразовое чтение группы [groupId]; несуществующая/чужая группа — GroupsError.GroupNotFound. */
+    /**
+     * Одноразовое чтение группы [groupId]; несуществующая группа, а также группа, где текущий
+     * пользователь не владелец и не участник (memberUids), — GroupsError.GroupNotFound.
+     * С Фазы 7 участник группы может читать её документ (проверка видимости карты);
+     * пишут группу по-прежнему только владельцы.
+     */
     suspend fun getGroup(groupId: String): Result<Group>
 
     /** Создаёт группу с именем [name] и составом [memberUids]; возвращает её groupId. */

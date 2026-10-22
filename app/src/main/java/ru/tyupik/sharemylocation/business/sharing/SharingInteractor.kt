@@ -12,6 +12,12 @@ interface SharingInteractor {
     /** Одноразовое чтение настроек; отсутствующий документ — [SharingSettings.default], не ошибка. */
     suspend fun getSettings(): Result<SharingSettings>
 
+    /**
+     * Одноразовое чтение настроек произвольного пользователя (Фаза 7, карта видимости);
+     * чужой или отсутствующий документ — [SharingSettings.default] («не шарит»), не ошибка.
+     */
+    suspend fun getSettingsByUid(uid: String): Result<SharingSettings>
+
     /** Полная идемпотентная запись снимка настроек (автосохранение экрана). */
     suspend fun saveSettings(settings: SharingSettings): Result<Unit>
 
