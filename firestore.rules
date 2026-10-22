@@ -27,6 +27,13 @@ rules_version = '2';
 // Валидацию состава (allowedUids/allowedGroupIds) выполняет клиент при записи;
 // чтение настроек друзьями (Фаза 7) — отдельным правилом с resource.data, там deny
 // отсутствующих не страшен.
+// locations/{uid}: точка геолокации владельца (Фаза 6). Запись — только владельцу, БЕЗ
+// resource.data (первый merge-set = create; состав полей не валидируем — консистентно
+// с sharingSettings). Чтение разделено от записи: владелец или друг владельца.
+// ОСТАТОЧНЫЙ РИСК (унаследован из Фазы 3, учесть в Фазе 7): самозапись в чужой friendUids
+// доходит и до правила чтения locations — при показе чужой локации перевалидировать взаимную
+// дружбу / наличие ACCEPTED-заявки. Каждое ЧУЖОЕ чтение локации = 1 платное чтение правил
+// (get users/{uid}) — на квоты Фазы 7.
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{uid} {
@@ -113,6 +120,21 @@ service cloud.firestore {
       // Состав списков валидирует клиент при записи; чтение друзьями (Фаза 7) —
       // отдельным правилом с resource.data, там deny отсутствующих не страшен.
       allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    match /locations/{uid} {
+      // Точка геолокации владельца (Фаза 6). Запись владельческая БЕЗ resource.data:
+      // первый merge-set = create, правило без resource пускает и create, и update;
+      // состав полей (geo/accuracy/updatedAt) не валидируем — консистентно с sharingSettings.
+      allow write: if request.auth != null && request.auth.uid == uid;
+
+      // Чтение разделено от записи: владелец или друг владельца (п. «Чтение локаций» Фазы 7).
+      // ВАЖНО: каждое ЧУЖОЕ чтение локации = 1 платное чтение правил (get users/{uid});
+      // самозапись в чужой friendUids проходит сюда — Фаза 7 обязана перевалидировать
+      // взаимность при показе (см. шапку).
+      allow read: if request.auth != null
+        && (request.auth.uid == uid
+            || request.auth.uid in get(/databases/$(database)/documents/users/$(uid)).data.get('friendUids', []));
     }
 
     function isOwner(uid) {

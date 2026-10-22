@@ -1,5 +1,8 @@
 package ru.tyupik.sharemylocation.ui.sharing
 
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +35,7 @@ import ru.tyupik.sharemylocation.R
 import ru.tyupik.sharemylocation.ui.sharing.composable.SharingAudienceOption
 import ru.tyupik.sharemylocation.ui.sharing.composable.SharingCheckRow
 import ru.tyupik.sharemylocation.ui.sharing.composable.SharingEnabledSwitch
+import ru.tyupik.sharemylocation.ui.sharing.composable.SharingPermissionBanner
 import ru.tyupik.sharemylocation.ui.sharing.composable.SharingSettingsErrorBanner
 import ru.tyupik.sharemylocation.ui.sharing.composable.SharingSettingsLoadError
 import ru.tyupik.sharemylocation.ui.theme.ShareMyLocationTheme
@@ -53,6 +57,17 @@ internal fun SharingSettingsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
 
+    // Системный диалог прав геолокации (Фаза 6): запускается Effect'ом, результат —
+    // intent'ом LocationPermissionsResult. Выданным считаем любой грант локации:
+    // отказ POST_NOTIFICATIONS при выданной геолокации включению не мешает.
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+    ) { permissions ->
+        val isLocationGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        viewModel.onIntent(SharingSettingsIntent.LocationPermissionsResult(granted = isLocationGranted))
+    }
+
     LaunchedEffect(Unit) { viewModel.onIntent(SharingSettingsIntent.ScreenShown) }
 
     LaunchedEffect(Unit) {
@@ -62,6 +77,14 @@ internal fun SharingSettingsScreen(
                     snackbarHostState.showSnackbar(
                         context.getString(R.string.sharing_hint_empty_audience),
                     )
+
+                SharingSettingsEffect.RequestLocationPermissions -> permissionLauncher.launch(
+                    arrayOf(
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION,
+                        Manifest.permission.POST_NOTIFICATIONS,
+                    ),
+                )
             }
         }
     }
@@ -127,6 +150,12 @@ private fun SharingSettingsContent(
                 text = errorText(error),
                 onDismiss = { onIntent(SharingSettingsIntent.SaveErrorDismissed) },
             )
+        }
+
+        if (uiState.isPermissionMissing) {
+            // Баннер «нет доступа к геолокации»: без dismiss — исчезает сам, когда права
+            // выданы (результат диалога) или документ выключен (перезагрузка по ScreenShown).
+            SharingPermissionBanner(text = stringResource(R.string.sharing_permission_missing))
         }
 
         SharingEnabledSwitch(
@@ -251,6 +280,7 @@ private fun SharingSettingsContentPreview() {
             uiState = SharingSettingsUiState(
                 isLoading = false,
                 isEnabled = true,
+                isPermissionMissing = true,
                 audience = SharingAudienceUi.CUSTOM,
                 friends = listOf(
                     SharingCheckRowUiModel(id = "uid-1", displayName = "Иван", isChecked = true),

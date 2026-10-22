@@ -5,6 +5,7 @@ import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import ru.tyupik.sharemylocation.business.sharing.LocationSharingController
 import ru.tyupik.sharemylocation.business.sharing.SharingRepository
 
 @Module
@@ -14,4 +15,8 @@ internal interface SharingModule {
     @Binds
     @Singleton
     fun bindSharingRepository(impl: SharingRepositoryImpl): SharingRepository
+
+    @Binds
+    @Singleton
+    fun bindLocationSharingController(impl: LocationSharingControllerImpl): LocationSharingController
 }

@@ -95,6 +95,13 @@
     <string name="sharing_retry">Повторить</string>
     <string name="sharing_error_network">Нет подключения к сети. Проверьте интернет и попробуйте снова</string>
     <string name="sharing_error_unexpected">Не удалось сохранить. Попробуйте ещё раз</string>
+    <string name="sharing_permission_missing">Нет доступа к геолокации: разрешите доступ в настройках, чтобы делиться позицией</string>
+
+    <!-- Foreground-сервис отправки геолокации (Фаза 6) -->
+    <string name="sharing_notification_title">Вы делитесь геопозицией</string>
+    <string name="sharing_notification_stop_action">Остановить</string>
+    <string name="sharing_notification_channel_name">Передача геопозиции</string>
+    <string name="sharing_notification_channel_description">Показывает уведомление, пока приложение делится геопозицией</string>
 
     <!-- Вкладка «Профиль» -->
     <string name="profile_edit">Редактировать</string>

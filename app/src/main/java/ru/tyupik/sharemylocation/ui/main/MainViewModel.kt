@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import ru.tyupik.sharemylocation.business.auth.AuthInteractor
 import ru.tyupik.sharemylocation.business.friends.FriendsInteractor
+import ru.tyupik.sharemylocation.business.sharing.LocationSharingController
 
 /**
  * ViewModel главного экрана-контейнера: хранит выбранную вкладку, badge входящих заявок
@@ -28,6 +29,7 @@ import ru.tyupik.sharemylocation.business.friends.FriendsInteractor
 class MainViewModel @Inject constructor(
     private val authInteractor: AuthInteractor,
     private val friendsInteractor: FriendsInteractor,
+    private val locationSharingController: LocationSharingController,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState())
@@ -80,6 +82,9 @@ class MainViewModel @Inject constructor(
 
     private fun signOut() {
         viewModelScope.launch {
+            // Явный стоп сервиса ДО выхода (Фаза 6): смерть Firestore-слушателя после signOut
+            // не мгновенна, иначе сервис продолжил бы писать и ловить PERMISSION_DENIED каждые 5 с.
+            locationSharingController.setSharingEnabled(false)
             authInteractor.signOut()
             _effects.send(MainEffect.NavigateToAuth)
         }

@@ -81,6 +81,10 @@ dependencies {
     implementation(libs.play.services.auth.api.phone)
     implementation(libs.play.services.integrity)
 
+    // FusedLocationProviderClient для foreground-сервиса отправки геолокации (Фаза 6).
+    // Обычный maven-артефакт: резолвится из Kotlin напрямую (в отличие от firebase-auth).
+    implementation(libs.play.services.location)
+
     // Google Sign-In через Credential Manager
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)

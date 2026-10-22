@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 import ru.tyupik.sharemylocation.business.common.User
 import ru.tyupik.sharemylocation.business.friends.FriendsInteractor
 import ru.tyupik.sharemylocation.business.groups.GroupsInteractor
+import ru.tyupik.sharemylocation.business.sharing.LocationSharingController
 import ru.tyupik.sharemylocation.business.sharing.SharingError
 import ru.tyupik.sharemylocation.business.sharing.SharingException
 import ru.tyupik.sharemylocation.business.sharing.SharingInteractor
@@ -51,6 +52,7 @@ class SharingSettingsViewModel @Inject constructor(
     private val sharingInteractor: SharingInteractor,
     private val friendsInteractor: FriendsInteractor,
     private val groupsInteractor: GroupsInteractor,
+    private val locationSharingController: LocationSharingController,
     private val sharingSettingsUiConverter: SharingSettingsUiConverter,
 ) : ViewModel() {
 
@@ -81,6 +83,13 @@ class SharingSettingsViewModel @Inject constructor(
     /** Полёт автосохранения; новое изменение отменяет предыдущую запись (снимок идемпотентен). */
     private var saveJob: Job? = null
 
+    /**
+     * Желаемое включение тумблера, отложенное до результата запроса прав (Фаза 6): тумблер
+     * без прав НЕ переключается, true запоминается здесь; после LocationPermissionsResult
+     * сбрасывается.
+     */
+    private var pendingEnableRequest = false
+
     init {
         observeFriends()
         observeGroups()
@@ -95,6 +104,8 @@ class SharingSettingsViewModel @Inject constructor(
             is SharingSettingsIntent.GroupToggled -> onGroupToggled(intent.groupId)
             SharingSettingsIntent.SaveErrorDismissed ->
                 _uiState.update { it.copy(saveError = null) }
+            is SharingSettingsIntent.LocationPermissionsResult ->
+                onLocationPermissionsResult(intent.granted)
         }
     }
 
@@ -116,6 +127,7 @@ class SharingSettingsViewModel @Inject constructor(
                 saveError = null,
                 isFriendsLoadFailed = false,
                 isGroupsLoadFailed = false,
+                isPermissionMissing = false,
             )
         }
         loadSettings()
@@ -154,6 +166,9 @@ class SharingSettingsViewModel @Inject constructor(
         _uiState.update { state ->
             state.copy(
                 isEnabled = settings.isEnabled,
+                // Документ «включён», но права не выданы: сервис работать не может — баннер.
+                isPermissionMissing = settings.isEnabled &&
+                    !locationSharingController.hasLocationPermission(),
                 audience = sharingSettingsUiConverter.convertAudience(settings.audience),
                 friends = state.friends.map { friend ->
                     friend.copy(isChecked = friend.id in rawSelectedUids)
@@ -220,11 +235,35 @@ class SharingSettingsViewModel @Inject constructor(
     }
 
     private fun onEnabledToggled(value: Boolean) {
-        _uiState.update { it.copy(isEnabled = value) }
+        if (value && !locationSharingController.hasLocationPermission()) {
+            // Гейт прав (Фаза 6): тумблер НЕ переключается и не персистится — «включено без прав»
+            // было бы ложным обещанием (сервис не стартует); желаемое включение ждёт диалога прав.
+            pendingEnableRequest = true
+            _uiState.update { it.copy(isPermissionMissing = true) }
+            viewModelScope.launch { _effects.send(SharingSettingsEffect.RequestLocationPermissions) }
+            return
+        }
+        _uiState.update { it.copy(isEnabled = value, isPermissionMissing = false) }
         // Включение при CUSTOM с пустым выбором = «локацию не увидит никто» — подсказка.
         if (value && _uiState.value.audience == SharingAudienceUi.CUSTOM && isSelectionEmpty()) {
             sendHint()
         }
+        persist()
+    }
+
+    /**
+     * Результат системного диалога прав: отказ — тумблер остаётся выключенным (персист не был),
+     * баннер объясняет причину; выдача — выполняем отложенное включение обычным автосейвом.
+     * Отказ POST_NOTIFICATIONS при выданной геолокации не блокирует включение: лаунчер
+     * считает выданным, если есть хотя бы один из грантов локации — см. SharingSettingsScreen.
+     */
+    private fun onLocationPermissionsResult(granted: Boolean) {
+        pendingEnableRequest = false
+        if (!granted) {
+            _uiState.update { it.copy(isPermissionMissing = true) }
+            return
+        }
+        _uiState.update { it.copy(isEnabled = true, isPermissionMissing = false) }
         persist()
     }
 

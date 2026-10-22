@@ -29,6 +29,12 @@ data class SharingSettingsUiState(
     val isSaving: Boolean = false,
     /** Ошибка автосохранения для баннера; сбрасывается по SaveErrorDismissed и при каждом ScreenShown. */
     val saveError: SharingUiError? = null,
+    /**
+     * Баннер «нет доступа к геолокации» (Фаза 6): попытка включить тумблер без прав, отказ
+     * в системном диалоге или документ «включён» при не выданных правах на ScreenShown.
+     * Включение без прав не персистится — сервис без ACCESS_FINE_LOCATION не работает.
+     */
+    val isPermissionMissing: Boolean = false,
 )
 
 /** Аудитория шаринга в терминах Ui-слоя. */
@@ -64,6 +70,12 @@ sealed class SharingSettingsIntent {
 
     /** Скрытие баннера ошибки автосохранения. */
     data object SaveErrorDismissed : SharingSettingsIntent()
+
+    /**
+     * Результат системного диалога прав геолокации (Фаза 6): granted — персист isEnabled = true
+     * обычным автосейвом; отказ — тумблер остаётся выключенным, показывается баннер.
+     */
+    data class LocationPermissionsResult(val granted: Boolean) : SharingSettingsIntent()
 }
 
 /** One-off события экрана. */
@@ -74,4 +86,11 @@ sealed class SharingSettingsEffect {
      * или включение тумблера при CUSTOM с пустым выбором.
      */
     data object ShowEmptyAudienceHint : SharingSettingsEffect()
+
+    /**
+     * Запрос системного диалога прав (Фаза 6): экран запускает rememberLauncherForActivityResult
+     * с ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION и POST_NOTIFICATIONS; результат
+     * возвращается intent'ом [SharingSettingsIntent.LocationPermissionsResult].
+     */
+    data object RequestLocationPermissions : SharingSettingsEffect()
 }

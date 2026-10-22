@@ -18,6 +18,7 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldPath;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QuerySnapshot;
@@ -91,6 +92,9 @@ public final class FirebaseBackend {
     private static final String FIELD_ALLOWED_GROUP_IDS = "allowedGroupIds";
     private static final String AUDIENCE_ALL_FRIENDS = "ALL_FRIENDS";
     private static final String AUDIENCE_CUSTOM = "CUSTOM";
+    private static final String LOCATIONS_COLLECTION = "locations";
+    private static final String FIELD_GEO = "geo";
+    private static final String FIELD_ACCURACY = "accuracy";
 
     /**
      * Максимальный размер JPEG аватара: лимит документа Firestore — 1 МБ,
@@ -1043,6 +1047,93 @@ public final class FirebaseBackend {
         } catch (ExecutionException | InterruptedException | TimeoutException e) {
             throw toSharingException(e);
         }
+    }
+
+    /**
+     * Записывает точку геолокации текущего пользователя merge-set'ом locations/{uid}:
+     * {geo = GeoPoint(lat, lng), accuracy, updatedAt = serverTimestamp}. Состав полей
+     * не валидируем — консистентно с sharingSettings; получателей вычисляет читатель (Фаза 7).
+     */
+    public void saveMyLocation(double latitude, double longitude, double accuracy)
+        throws SharingException {
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) {
+            throw noCurrentUserForSharing();
+        }
+        Log.d(TAG, "saveMyLocation: start");
+        try {
+            Map<String, Object> data = new HashMap<>();
+            data.put(FIELD_GEO, new GeoPoint(latitude, longitude));
+            data.put(FIELD_ACCURACY, accuracy);
+            data.put(FIELD_UPDATED_AT, FieldValue.serverTimestamp());
+            await(
+                FirebaseFirestore.getInstance()
+                    .collection(LOCATIONS_COLLECTION)
+                    .document(firebaseUser.getUid())
+                    .set(data, SetOptions.merge())
+            );
+            Log.d(TAG, "saveMyLocation: done");
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            throw toSharingException(e);
+        }
+    }
+
+    /**
+     * Меняет только {isEnabled, updatedAt} в sharingSettings/{uid} (merge): используется
+     * сервисом и контроллером, чтобы не перезаписать audience/allowedUids параллельным
+     * снимком автосейва с экрана настроек.
+     */
+    public void setSharingEnabled(boolean isEnabled) throws SharingException {
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) {
+            throw noCurrentUserForSharing();
+        }
+        Log.d(TAG, "setSharingEnabled: start");
+        try {
+            Map<String, Object> data = new HashMap<>();
+            data.put(FIELD_IS_ENABLED, isEnabled);
+            data.put(FIELD_UPDATED_AT, FieldValue.serverTimestamp());
+            await(
+                FirebaseFirestore.getInstance()
+                    .collection(SHARING_SETTINGS_COLLECTION)
+                    .document(firebaseUser.getUid())
+                    .set(data, SetOptions.merge())
+            );
+            Log.d(TAG, "setSharingEnabled: done");
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            throw toSharingException(e);
+        }
+    }
+
+    /**
+     * Realtime-слушатель sharingSettings/{uid}; отсутствующий документ — isEnabled = false
+     * (до первого сохранения настроек шаринг считается выключенным).
+     */
+    public ListenerRegistration listenSharingSettings(SharingEnabledListener listener)
+        throws SharingException {
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) {
+            throw noCurrentUserForSharing();
+        }
+        Log.d(TAG, "listenSharingSettings: start");
+        return FirebaseFirestore.getInstance()
+            .collection(SHARING_SETTINGS_COLLECTION)
+            .document(firebaseUser.getUid())
+            .addSnapshotListener((snapshot, error) -> {
+                if (error != null) {
+                    Log.w(TAG, "listenSharingSettings: error", error);
+                    listener.onUpdated(null, error);
+                    return;
+                }
+                boolean isEnabled = snapshot != null && snapshot.exists()
+                    && Boolean.TRUE.equals(snapshot.getBoolean(FIELD_IS_ENABLED));
+                listener.onUpdated(isEnabled, null);
+            });
+    }
+
+    /** Колбэк realtime-слушателя настройки isEnabled шаринга; error != null — обрыв потока данных. */
+    public interface SharingEnabledListener {
+        void onUpdated(Boolean isEnabled, Exception error);
     }
 
     /** Строка документа → SharingAudience; неизвестное значение трактуется как ALL_FRIENDS. */
