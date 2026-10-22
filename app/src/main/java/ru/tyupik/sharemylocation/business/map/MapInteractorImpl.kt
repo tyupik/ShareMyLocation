@@ -7,9 +7,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import ru.tyupik.sharemylocation.business.auth.AuthInteractor
 import ru.tyupik.sharemylocation.business.common.User
 import ru.tyupik.sharemylocation.business.friends.FriendsInteractor
@@ -18,25 +18,27 @@ import ru.tyupik.sharemylocation.business.groups.GroupsError
 import ru.tyupik.sharemylocation.business.groups.GroupsException
 import ru.tyupik.sharemylocation.business.groups.GroupsInteractor
 import ru.tyupik.sharemylocation.business.sharing.SharingAudience
-import ru.tyupik.sharemylocation.business.sharing.SharingInteractor
 import ru.tyupik.sharemylocation.business.sharing.SharingSettings
 
 /**
- * Реализация интерактора карты: комбинирует realtime-список друзей (uid + профиль),
- * одноразовые чтения настроек шаринга и групп (свежесть — каждый ScreenShown)
- * и realtime-точки локаций.
+ * Реализация интерактора карты: realtime-конвейер «друзья → их настройки шаринга →
+ * набор видимых uid → их точки локаций».
  *
  * Имена/аватар-версии и uid берутся из одного потока [FriendsInteractor.observeFriends]
  * (интерактор не отдаёт сырые uid, а дублирующий запрос профилей не нужен).
- * Настройки/группы читаются заново при каждой подписке на flow{}-блок, тики проходят
- * сквозь combine сами — переэмитация каждые 5 секунд старит «как давно» на экране.
+ * Настройки шаринга друзей — realtime-слепок observeSharingSettingsByUids: выключение/
+ * включение шаринга и смена аудитории/allowedUids у друга меняют набор видимых без
+ * перезахода на вкладку. [distinctUntilChanged] по проекции Map<uid, Boolean> гасит
+ * промежуточные эмиссии слепка: locations-слушатели перезапускаются только при фактической
+ * смене набора видимых. Состав групп — одноразовый get при пересборке проекции (обновится
+ * на следующий ScreenShown). Тики проходят сквозь combine сами — переэмитация каждые
+ * 5 секунд старит «как давно» на экране, не перезапуская слушатели.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @Singleton
 class MapInteractorImpl @Inject constructor(
     private val mapRepository: MapRepository,
     private val friendsInteractor: FriendsInteractor,
-    private val sharingInteractor: SharingInteractor,
     private val groupsInteractor: GroupsInteractor,
     private val authInteractor: AuthInteractor,
 ) : MapInteractor {
@@ -45,12 +47,15 @@ class MapInteractorImpl @Inject constructor(
         friendsInteractor.observeFriends()
             .distinctUntilChanged()
             .flatMapLatest { friends ->
-                flow {
-                    val myUid = authInteractor.getCurrentUser()?.uid
-                    val visibleUids = friends
-                        .filter { friend -> isVisible(friend, myUid) }
-                        .map(User::uid)
-                    emitAll(
+                mapRepository.observeSharingSettingsByUids(friends.map(User::uid))
+                    .map { settingsByUid ->
+                        val myUid = authInteractor.getCurrentUser()?.uid
+                        friends
+                            .filter { friend -> isVisible(friend, myUid, settingsByUid[friend.uid]) }
+                            .map(User::uid)
+                    }
+                    .distinctUntilChanged()
+                    .flatMapLatest { visibleUids ->
                         combine(
                             mapRepository.observeLocationsByUids(visibleUids),
                             visibilityTicker(),
@@ -68,20 +73,23 @@ class MapInteractorImpl @Inject constructor(
                                     )
                                 }
                             }
-                        },
-                    )
-                }
+                        }
+                    }
             }
 
     /**
-     * Видит ли текущий пользователь локацию [friend]: настройка активна и аудитория пускает.
-     * Сетевая ошибка чтения настроек не глотается — падение закрывает поток целиком
-     * (экран покажет состояние ошибки), тогда как deny/отсутствие документа уже
-     * преобразованы в default («не шарит») в data-слое.
+     * Видит ли текущий пользователь локацию [friend]: настройка из realtime-слепка активна
+     * и аудитория пускает. Отсутствующий слепок (слушатель ещё не доставил документ) —
+     * «не видно» до первой доставки. Сетевые ошибки слушателя не глотаются — падение
+     * закрывает поток целиком (экран покажет состояние ошибки); deny/отсутствие документа
+     * уже преобразованы в default («не шарит») в data-слое.
      */
-    private suspend fun isVisible(friend: User, myUid: String?): Boolean {
-        if (myUid == null) return false
-        val settings = sharingInteractor.getSettingsByUid(friend.uid).getOrThrow()
+    private suspend fun isVisible(
+        friend: User,
+        myUid: String?,
+        settings: SharingSettings?,
+    ): Boolean {
+        if (myUid == null || settings == null) return false
         if (!settings.isEnabled) return false
         return when (settings.audience) {
             SharingAudience.ALL_FRIENDS -> true

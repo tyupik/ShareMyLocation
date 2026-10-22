@@ -1,13 +1,22 @@
 package ru.tyupik.sharemylocation.business.map
 
 import kotlinx.coroutines.flow.Flow
+import ru.tyupik.sharemylocation.business.sharing.SharingSettings
 
 /**
- * Контракт чтения точек геолокаций: коллекция locations в Firestore.
- * Документ ключуется uid владельца точки; текущий пользователь подразумевается неявно,
- * как в [ru.tyupik.sharemylocation.business.sharing.SharingRepository].
+ * Контракт чтения точек геолокаций и настроек шаринга друзей: коллекции locations
+ * и sharingSettings в Firestore. Документ ключуется uid владельца; текущий пользователь
+ * подразумевается неявно, как в [ru.tyupik.sharemylocation.business.sharing.SharingRepository].
  */
 interface MapRepository {
+
+    /**
+     * Realtime-настройки шаринга пользователей [uids]: документ sharingSettings/{uid} на uid,
+     * ключ карты — uid. Отсутствующий или запрещённый правилами документ приходит как
+     * SharingSettings.default («не шарит»), не ошибка; ошибка слушателя закрывает flow —
+     * перезапуск возможен по повторной подписке (каждый ScreenShown).
+     */
+    fun observeSharingSettingsByUids(uids: List<String>): Flow<Map<String, SharingSettings>>
 
     /**
      * Realtime-поток точек локаций пользователей [uids]: ключ карты — uid.

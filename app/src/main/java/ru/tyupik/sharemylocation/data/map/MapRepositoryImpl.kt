@@ -13,6 +13,7 @@ import ru.tyupik.sharemylocation.business.map.MapQueryDeniedException
 import ru.tyupik.sharemylocation.business.map.MapRepository
 import ru.tyupik.sharemylocation.business.sharing.SharingError
 import ru.tyupik.sharemylocation.business.sharing.SharingException
+import ru.tyupik.sharemylocation.business.sharing.SharingSettings
 import ru.tyupik.sharemylocation.data.auth.FirebaseBackend
 import ru.tyupik.sharemylocation.data.sharing.SharingRepositoryImpl
 
@@ -99,6 +100,43 @@ class MapRepositoryImpl @Inject constructor(
         return cause as? SharingException
             ?: SharingException(SharingError.Unexpected(cause.message), cause)
     }
+
+    /**
+     * Realtime-настройки шаринга по uid: по одному по-документному слушателю на uid
+     * (паттерн fallback-ветки observeLocationsByUids), слияние в общую карту и trySend
+     * объединённого слепка на каждое обновление. Отсутствующий/запрещённый документ backend
+     * уже преобразовал в default («не шарит») — сюда приходят только данные или обрыв.
+     */
+    override fun observeSharingSettingsByUids(uids: List<String>): Flow<Map<String, SharingSettings>> =
+        callbackFlow {
+            if (uids.isEmpty()) {
+                // Слушателей не создаём: пустой список друзей означает пустой слепок настроек.
+                trySend(emptyMap())
+                awaitClose { }
+                return@callbackFlow
+            }
+            val mergedSettings = HashMap<String, SharingSettings>()
+            val registrations = CopyOnWriteArrayList<ListenerRegistration>()
+            uids.forEach { uid ->
+                try {
+                    registrations.add(
+                        backend.listenSharingSettingsByUid(uid) { settings, error ->
+                            if (error != null) {
+                                // Слушатель после ошибки терминально мёртв — закрываем flow;
+                                // перезапуск возможен по повторной подписке (ScreenShown).
+                                close(toSharingException(error))
+                            } else {
+                                mergedSettings[uid] = settings
+                                trySend(mergedSettings.toMap())
+                            }
+                        },
+                    )
+                } catch (throwable: Throwable) {
+                    close(toSharingException(throwable))
+                }
+            }
+            awaitClose { registrations.forEach { registration -> registration.remove() } }
+        }
 
     /**
      * Чанк whereIn-запроса: копит свою часть объединённой карты локаций и уведомляет

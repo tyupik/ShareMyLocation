@@ -1188,6 +1188,62 @@ public final class FirebaseBackend {
     }
 
     /**
+     * Realtime-слушатель настроек шаринга произвольного пользователя по uid (карта видимости):
+     * документ sharingSettings/{uid}, парсинг как в getSharingSettingsByUid. !exists() —
+     * НЕ ошибка: SharingSettings.defaultOf(uid), трактуемый как «не шарит».
+     * PERMISSION_DENIED/NOT_FOUND (меня удалили из друзей, документ недоступен читателю) —
+     * тоже defaultOf(uid) с error = null: семантика «не шарит», значение уже доставлено
+     * (слушатель после ошибки терминально мёртв — обновлений по этому uid до перезапуска
+     * подписки не будет, доступ отозван легитимно); прочие ошибки — onUpdated(null, error).
+     * Использует существующие toSharingAudience/toStringList.
+     */
+    public ListenerRegistration listenSharingSettingsByUid(String uid, SharingSettingsListener listener)
+        throws SharingException {
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser == null) {
+            throw noCurrentUserForSharing();
+        }
+        Log.d(TAG, "listenSharingSettingsByUid: start");
+        return FirebaseFirestore.getInstance()
+            .collection(SHARING_SETTINGS_COLLECTION)
+            .document(uid)
+            .addSnapshotListener((snapshot, error) -> {
+                if (error != null) {
+                    Log.w(TAG, "listenSharingSettingsByUid: error", error);
+                    if (isSharingAccessDenied(error)) {
+                        listener.onUpdated(SharingSettings.defaultOf(uid), null);
+                        return;
+                    }
+                    listener.onUpdated(null, error);
+                    return;
+                }
+                if (snapshot == null || !snapshot.exists()) {
+                    listener.onUpdated(SharingSettings.defaultOf(uid), null);
+                    return;
+                }
+                Timestamp updatedAt = snapshot.getTimestamp(FIELD_UPDATED_AT);
+                listener.onUpdated(new SharingSettings(
+                    uid,
+                    Boolean.TRUE.equals(snapshot.getBoolean(FIELD_IS_ENABLED)),
+                    toSharingAudience(snapshot.getString(FIELD_AUDIENCE)),
+                    toStringList(snapshot.get(FIELD_ALLOWED_UIDS)),
+                    toStringList(snapshot.get(FIELD_ALLOWED_GROUP_IDS)),
+                    updatedAt != null
+                        ? updatedAt.getSeconds() * 1000L + updatedAt.getNanoseconds() / 1_000_000L
+                        : 0L
+                ), null);
+            });
+    }
+
+    /**
+     * Колбэк realtime-слушателя настроек шаринга произвольного пользователя;
+     * error != null означает обрыв потока данных (слушатель мёртв).
+     */
+    public interface SharingSettingsListener {
+        void onUpdated(SharingSettings settings, Exception error);
+    }
+
+    /**
      * Realtime-слушатель точек локаций пользователей по uid одним запросом
      * whereIn(FieldPath.documentId(), uids). Лимит whereIn — 10 элементов на запрос;
      * чанкование и слияние чанков выполняет Kotlin-репозиторий (MapRepositoryImpl).

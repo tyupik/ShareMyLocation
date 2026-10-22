@@ -28,8 +28,8 @@
 
     <!-- Вкладка «Карта» -->
     <string name="map_open_list">На карте: %1$d</string>
-    <string name="map_empty_no_friends">Друзей пока нет. Добавьте друзей во вкладке «Друзья», чтобы видеть их геопозицию</string>
-    <string name="map_empty_nobody_sharing">Пока никто из друзей не делится геопозицией</string>
+    <string name="map_locate_me">Показать меня</string>
+    <string name="map_list_empty">Никто из друзей сейчас не делится</string>
     <string name="map_load_error">Не удалось загрузить карту. Проверьте интернет и попробуйте снова</string>
     <string name="map_retry">Повторить</string>
     <string name="map_unavailable_no_api_key">Карта недоступна: не настроен API-ключ</string>
