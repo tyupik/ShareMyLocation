@@ -128,6 +128,14 @@ dependencies {
 
     // Загрузка аватаров из кэш-файлов приложения
     implementation(libs.coil.compose)
+
+    // Круговое кадрирование аватара: готовая CropImageActivity (vanniktech android-image-cropper).
+    implementation(libs.vanniktech.image.cropper)
+
+    // CropImageActivity наследует AppCompatActivity: нужна appcompat в compile-classpath,
+    // иначе платформенная тема приложения крашит кроп-activity (см. Theme.ShareMyLocation.Cropper).
+    implementation(libs.androidx.appcompat)
+
     implementation(libs.kotlinx.serialization.core)
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.androidx.compose.material.icons.extended)

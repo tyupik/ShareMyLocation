@@ -15,6 +15,18 @@ class ProfileInteractorImpl @Inject constructor(
     override suspend fun prepareAvatar(localUri: String): Result<String> =
         profileRepository.prepareAvatar(localUri)
 
+    override suspend fun createCameraAvatarUri(): Result<String> =
+        profileRepository.createCameraAvatarUri()
+
+    override suspend fun deleteCameraAvatar(uri: String): Result<Unit> =
+        profileRepository.deleteCameraAvatar(uri)
+
+    override suspend fun createCropAvatarUri(): Result<String> =
+        profileRepository.createCropAvatarUri()
+
+    override suspend fun deleteCropAvatar(uri: String): Result<Unit> =
+        profileRepository.deleteCropAvatar(uri)
+
     override suspend fun getAvatar(uid: String, version: Long): Result<AvatarImage> {
         if (version <= 0L) {
             return Result.success(AvatarImage(uid = uid, version = version, cachedPath = null))

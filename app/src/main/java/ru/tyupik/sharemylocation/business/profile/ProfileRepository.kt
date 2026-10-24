@@ -17,6 +17,24 @@ interface ProfileRepository {
      */
     suspend fun prepareAvatar(localUri: String): Result<String>
 
+    /**
+     * Создаёт временный файл в кэше для снимка камеры и возвращает его content-Uri
+     * (FileProvider) для запуска TakePicture; удаляется через [deleteCameraAvatar].
+     */
+    suspend fun createCameraAvatarUri(): Result<String>
+
+    /** Best-effort удаляет временный снимок камеры по его content-Uri. */
+    suspend fun deleteCameraAvatar(uri: String): Result<Unit>
+
+    /**
+     * Формирует путь к файлу-результату кругового кадрирования в кэше и возвращает его
+     * file-Uri (customOutputUri для CropImageActivity); удаляется через [deleteCropAvatar].
+     */
+    suspend fun createCropAvatarUri(): Result<String>
+
+    /** Best-effort удаляет временный файл-результат кадрирования по его file-Uri. */
+    suspend fun deleteCropAvatar(uri: String): Result<Unit>
+
     /** Загружает подготовленный JPEG в документ avatars/{uid}; возвращает новую версию аватара. */
     suspend fun uploadAvatar(cachedPath: String): Result<Long>
 

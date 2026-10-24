@@ -2,4 +2,11 @@
 <resources>
 
     <style name="Theme.ShareMyLocation" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!--
+        CropImageActivity (android-image-cropper) наследует AppCompatActivity: платформенная
+        тема приложения ей не подходит, нужен AppCompat-родитель, причём с action bar —
+        кнопку «Обрезать» библиотека рисует menu item'ом в системном action bar.
+    -->
+    <style name="Theme.ShareMyLocation.Cropper" parent="Theme.AppCompat.DayNight" />
 </resources>

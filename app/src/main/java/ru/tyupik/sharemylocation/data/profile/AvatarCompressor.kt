@@ -15,6 +15,7 @@ import kotlin.math.max
  * Сжатие выбранного изображения аватара на устройстве.
  * Декодирует с сэмплингом, масштабирует до максимальной стороны [MAX_SIDE_PX]
  * и перекодирует в JPEG с качеством [JPEG_QUALITY]; результат кладёт в кэш приложения.
+ * Кадрирование выполняет библиотека android-image-cropper до вызова сжатия.
  */
 @Singleton
 class AvatarCompressor @Inject constructor(
@@ -22,25 +23,7 @@ class AvatarCompressor @Inject constructor(
 ) {
 
     /** Сжимает изображение по [localUri] и возвращает абсолютный путь к файлу в кэше. */
-    fun compressToCache(localUri: String): String {
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        openStream(localUri)?.use { stream -> BitmapFactory.decodeStream(stream, null, bounds) }
-
-        val options = BitmapFactory.Options().apply {
-            inSampleSize = computeSampleSize(bounds.outWidth, bounds.outHeight)
-        }
-        val decoded = openStream(localUri)?.use { stream -> BitmapFactory.decodeStream(stream, null, options) }
-            ?: throw IllegalArgumentException("Не удалось декодировать изображение аватара: $localUri")
-
-        val scaled = scaleToFit(decoded)
-        val cacheFile = File(context.cacheDir, "avatar_" + System.currentTimeMillis() + ".jpg")
-        cacheFile.outputStream().use { output -> scaled.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, output) }
-        if (scaled !== decoded) {
-            scaled.recycle()
-        }
-        decoded.recycle()
-        return cacheFile.absolutePath
-    }
+    fun compressToCache(localUri: String): String = compressWholeImage(localUri)
 
     /**
      * Читает подготовленный файл в память для записи в Firestore; если JPEG крупнее
@@ -61,16 +44,40 @@ class AvatarCompressor @Inject constructor(
         return recompressed
     }
 
+    /** Декод целиком с сэмплингом под [MAX_SIDE_PX] и сжатие всего кадра. */
+    private fun compressWholeImage(localUri: String): String {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        openStream(localUri)?.use { stream -> BitmapFactory.decodeStream(stream, null, bounds) }
+
+        val options = BitmapFactory.Options().apply {
+            inSampleSize = computeSampleSize(bounds.outWidth, bounds.outHeight, MAX_SIDE_PX)
+        }
+        val decoded = decode(localUri, options)
+            ?: throw IllegalArgumentException("Не удалось декодировать изображение аватара: $localUri")
+
+        val scaled = scaleToFit(decoded)
+        val cacheFile = File(context.cacheDir, "avatar_" + System.currentTimeMillis() + ".jpg")
+        cacheFile.outputStream().use { output -> scaled.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, output) }
+        if (scaled !== decoded) {
+            scaled.recycle()
+        }
+        decoded.recycle()
+        return cacheFile.absolutePath
+    }
+
+    private fun decode(localUri: String, options: BitmapFactory.Options): Bitmap? =
+        openStream(localUri)?.use { stream -> BitmapFactory.decodeStream(stream, null, options) }
+
     private fun openStream(localUri: String) =
         context.contentResolver.openInputStream(Uri.parse(localUri))
 
     /** Степень двойки для inSampleSize: после сэмплинга максимальная сторона ещё >= целевой. */
-    private fun computeSampleSize(width: Int, height: Int): Int {
+    private fun computeSampleSize(width: Int, height: Int, targetSidePx: Int): Int {
         var sampleSize = 1
         if (width <= 0 || height <= 0) {
             return sampleSize
         }
-        while (max(width, height) / (sampleSize * 2) >= MAX_SIDE_PX) {
+        while (max(width, height) / (sampleSize * 2) >= targetSidePx) {
             sampleSize *= 2
         }
         return sampleSize

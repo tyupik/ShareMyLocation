@@ -24,6 +24,9 @@ sealed class ProfileSetupUiError {
     /** Фото слишком большое для документа Firestore даже после сжатия. */
     data object AvatarTooLarge : ProfileSetupUiError()
 
+    /** Камеру открыть не удалось: на устройстве нет приложения камеры. */
+    data object CameraUnavailable : ProfileSetupUiError()
+
     data class Unexpected(val reason: String?) : ProfileSetupUiError()
 }
 

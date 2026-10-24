@@ -26,6 +26,8 @@ class ProfileRepositoryImpl @Inject constructor(
     private val backend: FirebaseBackend,
     private val avatarCompressor: AvatarCompressor,
     private val avatarCache: AvatarCache,
+    private val cameraAvatarSource: CameraAvatarSource,
+    private val avatarCropOutputSource: AvatarCropOutputSource,
 ) : ProfileRepository {
 
     override suspend fun getProfile(): Result<User> =
@@ -36,6 +38,36 @@ class ProfileRepositoryImpl @Inject constructor(
     override suspend fun prepareAvatar(localUri: String): Result<String> =
         runSuspendCatching {
             withContext(Dispatchers.IO) { avatarCompressor.compressToCache(localUri) }
+        }.mapFailure { toProfileException(it) }
+
+    /** Создаёт временный файл для снимка камеры и возвращает его content-Uri. */
+    override suspend fun createCameraAvatarUri(): Result<String> =
+        runSuspendCatching {
+            withContext(Dispatchers.IO) { cameraAvatarSource.createCaptureUri() }
+        }.mapFailure { toProfileException(it) }
+
+    /** Создаёт пустой файл-результат кропа в кэше и возвращает его file-Uri. */
+    override suspend fun createCropAvatarUri(): Result<String> =
+        runSuspendCatching {
+            withContext(Dispatchers.IO) { avatarCropOutputSource.createOutputUri() }
+        }.mapFailure { toProfileException(it) }
+
+    /** Best-effort удаляет временный файл-результат кропа по его file-Uri. */
+    override suspend fun deleteCropAvatar(uri: String): Result<Unit> =
+        runSuspendCatching {
+            withContext(Dispatchers.IO) {
+                avatarCropOutputSource.deleteOutput(uri)
+                Unit
+            }
+        }.mapFailure { toProfileException(it) }
+
+    /** Best-effort удаляет временный снимок камеры; сбой удаления не пробрасывается как успех. */
+    override suspend fun deleteCameraAvatar(uri: String): Result<Unit> =
+        runSuspendCatching {
+            withContext(Dispatchers.IO) {
+                cameraAvatarSource.deleteCapturedImage(uri)
+                Unit
+            }
         }.mapFailure { toProfileException(it) }
 
     override suspend fun uploadAvatar(cachedPath: String): Result<Long> =

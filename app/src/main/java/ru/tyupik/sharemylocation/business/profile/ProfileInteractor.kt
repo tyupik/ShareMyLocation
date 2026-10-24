@@ -11,8 +11,28 @@ interface ProfileInteractor {
     /** Профиль текущего пользователя. */
     suspend fun getProfile(): Result<User>
 
-    /** Сжимает выбранное изображение и возвращает путь к копии в кэше приложения. */
+    /**
+     * Сжимает выбранное изображение и возвращает путь к копии в кэше приложения.
+     */
     suspend fun prepareAvatar(localUri: String): Result<String>
+
+    /**
+     * Создаёт временный файл для снимка камеры и возвращает его content-Uri
+     * (FileProvider) для запуска TakePicture; удаляется через [deleteCameraAvatar].
+     */
+    suspend fun createCameraAvatarUri(): Result<String>
+
+    /** Best-effort удаляет временный снимок камеры по его content-Uri. */
+    suspend fun deleteCameraAvatar(uri: String): Result<Unit>
+
+    /**
+     * Формирует путь к файлу-результату кругового кадрирования в кэше и возвращает его
+     * file-Uri (customOutputUri для CropImageActivity); удаляется через [deleteCropAvatar].
+     */
+    suspend fun createCropAvatarUri(): Result<String>
+
+    /** Best-effort удаляет временный файл-результат кадрирования по его file-Uri. */
+    suspend fun deleteCropAvatar(uri: String): Result<Unit>
 
     /**
      * Резолвит аватар пользователя как [AvatarImage]; версия 0 и меньше означает,

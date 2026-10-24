@@ -159,4 +159,7 @@
     <string name="profile_setup_avatar_source_camera">Сделать фото</string>
     <string name="profile_setup_avatar_source_cancel">Отмена</string>
     <string name="profile_setup_error_camera_unavailable">Не удалось открыть камеру. Убедитесь, что на устройстве есть приложение камеры</string>
+
+    <!-- Кроп-activity библиотеки android-image-cropper -->
+    <string name="profile_setup_crop_title">Кадрирование фото</string>
 </resources>

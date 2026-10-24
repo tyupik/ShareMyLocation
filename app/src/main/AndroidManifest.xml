@@ -45,6 +45,20 @@
         </activity>
 
         <!--
+            Кроп-activity библиотеки android-image-cropper: наследует AppCompatActivity,
+            поэтому переобъявляем её с AppCompat-темой (атрибут приложения побеждает
+            манифест библиотеки без tools:replace). exported="false" перекрывает
+            exported="true" из манифеста AAR (activity принимает произвольные sourceUri/
+            customOutputUri из extras и не должна запускаться извне приложения);
+            для exported мерджер требует явный tools:replace — в отличие от темы.
+        -->
+        <activity
+            android:name="com.canhub.cropper.CropImageActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ShareMyLocation.Cropper"
+            tools:replace="android:exported" />
+
+        <!--
             Записи ниже — из AndroidManifest.xml AAR firebase-auth.
             Мы подключаем classes.jar напрямую (app/libs, см. build.gradle.kts), поэтому
             манифест AAR не мержится автоматически. Без ComponentDiscoveryService и его
