@@ -76,7 +76,10 @@ class FriendsViewModel @Inject constructor(
             is FriendsIntent.AddFriendClicked -> addFriend(intent.uid)
             is FriendsIntent.AcceptRequestClicked -> acceptRequest(intent.fromUid)
             is FriendsIntent.DeclineRequestClicked -> declineRequest(intent.fromUid)
-            is FriendsIntent.RemoveFriendClicked -> removeFriend(intent.uid)
+            is FriendsIntent.RemoveFriendClicked -> showRemoveDialog(intent.uid)
+            FriendsIntent.RemoveFriendConfirmed -> removeConfirmedFriend()
+            FriendsIntent.RemoveFriendDialogDismissed ->
+                _uiState.update { it.copy(removeDialogFriend = null) }
             FriendsIntent.CreateGroupClicked -> openGroupEditor(null)
             is FriendsIntent.GroupClicked -> openGroupEditor(intent.groupId)
             FriendsIntent.ErrorDismissed -> _uiState.update { it.copy(actionError = null) }
@@ -85,8 +88,9 @@ class FriendsViewModel @Inject constructor(
 
     /**
      * Перезапуск realtime-потоков трактуется как чистый лист: вместе с триггером сбрасываем
-     * [FriendsUiState.actionError], все три флага пассивной недоступности секций и поиск
-     * (вход на вкладку = чистый лист поиска: searchQuery, searchState, busyUid).
+     * [FriendsUiState.actionError], все три флага пассивной недоступности секций, поиск
+     * (вход на вкладку = чистый лист поиска: searchQuery, searchState, busyUid) и открытый
+     * диалог удаления друга (removeDialogFriend).
      * Списки friends/incomingRequests/groups НЕ чистим — realtime-потоки доставят свежие данные.
      * Следствие (осознанно): guard `busyUid != null → return` после сброса не защищает от
      * повторного клика по действию, оставшемуся в полёте с предыдущего показа вкладки, —
@@ -105,6 +109,7 @@ class FriendsViewModel @Inject constructor(
                 searchQuery = "",
                 searchState = FriendsSearchUiState.Idle,
                 busyUid = null,
+                removeDialogFriend = null,
             )
         }
     }
@@ -260,6 +265,28 @@ class FriendsViewModel @Inject constructor(
                 onFailure = { throwable -> onActionError(throwable) },
             )
         }
+    }
+
+    /**
+     * Открытие диалога подтверждения удаления: фиксируем снимок друга на момент клика.
+     * Без guard busyUid — как DeleteClicked в GroupEditor: диалог не серверная операция,
+     * busyUid защищает само удаление внутри [removeFriend].
+     */
+    private fun showRemoveDialog(uid: String) {
+        _uiState.update { state ->
+            state.copy(removeDialogFriend = state.friends.firstOrNull { friend -> friend.uid == uid })
+        }
+    }
+
+    /**
+     * Удаление по подтверждению: работаем по снимку [FriendsUiState.removeDialogFriend], поэтому
+     * операция выполняется, даже если друг исчез из realtime-списка, пока был открыт диалог
+     * (удаление идемпотентно, ошибка уйдёт в actionError). Диалог закрываем сразу.
+     */
+    private fun removeConfirmedFriend() {
+        val friend = _uiState.value.removeDialogFriend ?: return
+        _uiState.update { it.copy(removeDialogFriend = null) }
+        removeFriend(friend.uid)
     }
 
     private fun removeFriend(uid: String) {

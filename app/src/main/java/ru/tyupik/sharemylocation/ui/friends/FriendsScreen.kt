@@ -27,6 +27,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ru.tyupik.sharemylocation.R
 import ru.tyupik.sharemylocation.ui.friends.composable.FriendCard
+import ru.tyupik.sharemylocation.ui.friends.composable.FriendRemoveConfirmDialog
 import ru.tyupik.sharemylocation.ui.friends.composable.FriendsEmptyState
 import ru.tyupik.sharemylocation.ui.friends.composable.FriendsErrorBanner
 import ru.tyupik.sharemylocation.ui.friends.composable.FriendsLoadError
@@ -74,6 +75,14 @@ internal fun FriendsScreen(
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 16.dp),
         )
+        uiState.removeDialogFriend?.let { friend ->
+            FriendRemoveConfirmDialog(
+                friendName = friend.displayName,
+                isBusy = uiState.busyUid == friend.uid,
+                onConfirm = { viewModel.onIntent(FriendsIntent.RemoveFriendConfirmed) },
+                onDismiss = { viewModel.onIntent(FriendsIntent.RemoveFriendDialogDismissed) },
+            )
+        }
     }
 }
 

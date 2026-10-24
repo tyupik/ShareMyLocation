@@ -59,6 +59,10 @@
     <string name="friends_error_unexpected">Не удалось выполнить действие. Попробуйте ещё раз</string>
     <string name="friends_load_error">Не удалось загрузить. Проверьте интернет и попробуйте снова</string>
     <string name="friends_retry">Повторить</string>
+    <string name="friends_remove_dialog_title">Удалить друга?</string>
+    <string name="friends_remove_dialog_text">%1$s будет удалён из ваших друзей. Вы перестанете видеть его геопозицию, а он — вашу</string>
+    <string name="friends_remove_dialog_confirm">Удалить</string>
+    <string name="friends_remove_dialog_cancel">Отмена</string>
 
     <!-- Группы: секция на вкладке «Друзья» и редактор группы -->
     <string name="groups_section">Группы</string>

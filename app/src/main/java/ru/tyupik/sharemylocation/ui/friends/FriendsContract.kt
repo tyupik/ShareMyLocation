@@ -30,6 +30,11 @@ data class FriendsUiState(
     val isGroupsLoading: Boolean = true,
     /** Пассивная недоступность секции «Группы» (упал realtime-поток); восстанавливается ScreenShown/Повторить. */
     val isGroupsLoadFailed: Boolean = false,
+    /**
+     * Снимок друга, для которого открыт диалог подтверждения удаления; null — диалог скрыт.
+     * Транзиентное: вход на вкладку = без диалога (сбрасывается ScreenShown).
+     */
+    val removeDialogFriend: FriendUiModel? = null,
 )
 
 /** Состояние секции поиска. */
@@ -62,7 +67,14 @@ sealed class FriendsIntent {
 
     data class DeclineRequestClicked(val fromUid: String) : FriendsIntent()
 
+    /** Нажата кнопка «Удалить из друзей» у друга [uid] — открыть диалог подтверждения. */
     data class RemoveFriendClicked(val uid: String) : FriendsIntent()
+
+    /** Подтверждение удаления в диалоге: удаляем друга из снимка [FriendsUiState.removeDialogFriend]. */
+    data object RemoveFriendConfirmed : FriendsIntent()
+
+    /** Диалог подтверждения удаления закрыт без подтверждения. */
+    data object RemoveFriendDialogDismissed : FriendsIntent()
 
     /** Нажата кнопка «Создать» в секции групп — открыть редактор в режиме создания. */
     data object CreateGroupClicked : FriendsIntent()
