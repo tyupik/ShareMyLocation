@@ -1,10 +1,12 @@
 package ru.tyupik.sharemylocation.ui.friends
 
 /**
- * SSOT вкладки «Друзья». Секции «Поиск», «Заявки», «Список» живут в одном состоянии:
- * списки приходят realtime-потоками, [searchState] и [busyUid] не зависят друг от друга.
- * Аватары резолвятся асинхронно после основного контента: ошибка аватара не ломает экран,
- * остаётся плейсхолдер с инициалом.
+ * SSOT вкладки «Друзья». Секции «Поиск», «Список» живут в одном состоянии, заявки — в
+ * bottom-sheet'е по колокольчику ([isRequestsSheetVisible]); списки приходят realtime-потоками,
+ * [searchState] и [busyUid] не зависят друг от друга. Аватары резолвятся асинхронно после
+ * основного контента: ошибка аватара не ломает экран, остаётся плейсхолдер с инициалом.
+ * Контакт из системного пикера ([FriendsIntent.ContactPicked]) нового состояния не требует:
+ * его телефон подставляется в [searchQuery] и переиспользует обычный поиск ([searchState]).
  */
 data class FriendsUiState(
     val friends: List<FriendUiModel> = emptyList(),
@@ -35,6 +37,8 @@ data class FriendsUiState(
      * Транзиентное: вход на вкладку = без диалога (сбрасывается ScreenShown).
      */
     val removeDialogFriend: FriendUiModel? = null,
+    /** Видимость bottom-sheet'а заявок. Транзиентное: вход на вкладку = лист закрыт (сбрасывается ScreenShown). */
+    val isRequestsSheetVisible: Boolean = false,
 )
 
 /** Состояние секции поиска. */
@@ -54,6 +58,12 @@ sealed interface FriendsSearchUiState {
 sealed class FriendsIntent {
     /** Вкладка показана: перезапускаем realtime-потоки при каждом входе на вкладку. */
     data object ScreenShown : FriendsIntent()
+
+    /** Нажат колокольчик заявок — открыть bottom-sheet со списком заявок. */
+    data object RequestsBellClicked : FriendsIntent()
+
+    /** Bottom-sheet заявок закрыт (свайп, тап вне, назад). */
+    data object RequestsSheetDismissed : FriendsIntent()
 
     data class SearchQueryChanged(val value: String) : FriendsIntent()
 

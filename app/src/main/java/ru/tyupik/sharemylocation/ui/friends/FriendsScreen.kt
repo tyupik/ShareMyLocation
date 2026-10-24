@@ -1,5 +1,8 @@
 package ru.tyupik.sharemylocation.ui.friends
 
+import android.content.ActivityNotFoundException
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -30,8 +33,9 @@ import ru.tyupik.sharemylocation.ui.friends.composable.FriendCard
 import ru.tyupik.sharemylocation.ui.friends.composable.FriendRemoveConfirmDialog
 import ru.tyupik.sharemylocation.ui.friends.composable.FriendsEmptyState
 import ru.tyupik.sharemylocation.ui.friends.composable.FriendsErrorBanner
+import ru.tyupik.sharemylocation.ui.friends.composable.FriendsHeader
 import ru.tyupik.sharemylocation.ui.friends.composable.FriendsLoadError
-import ru.tyupik.sharemylocation.ui.friends.composable.FriendsRequestCard
+import ru.tyupik.sharemylocation.ui.friends.composable.FriendsRequestsSheet
 import ru.tyupik.sharemylocation.ui.friends.composable.FriendsSearchField
 import ru.tyupik.sharemylocation.ui.friends.composable.FriendsSearchResultCard
 import ru.tyupik.sharemylocation.ui.friends.composable.GroupCard
@@ -39,11 +43,15 @@ import ru.tyupik.sharemylocation.ui.friends.composable.GroupsHeader
 import ru.tyupik.sharemylocation.ui.theme.ShareMyLocationTheme
 
 /**
- * Вкладка «Друзья»: поиск по номеру телефона, входящие заявки, список друзей и группы.
- * Realtime-обновления приходят потоками из интеракторов; перечитывание при показе
- * вкладки выполняется через [FriendsIntent.ScreenShown]. Эффекты: [FriendsEffect.FriendRequestSent]
- * показывается Snackbar'ом, [FriendsEffect.OpenGroupEditor] открывает редактор группы
- * через [onOpenGroupEditor].
+ * Вкладка «Друзья»: поиск по номеру телефона (вручную или из контактов через системный
+ * пикер [ActivityResultContracts.PickContact] — кнопка [FriendsPickContactButton]), список
+ * друзей и группы. Входящие заявки — в bottom-sheet'е по колокольчику ([FriendsHeader],
+ * состояние [FriendsUiState.isRequestsSheetVisible]), чтобы не забивать тело вкладки.
+ * Realtime-обновления приходят потоками из интеракторов; перечитывание при показе вкладки
+ * выполняется через [FriendsIntent.ScreenShown]. Эффекты: [FriendsEffect.FriendRequestSent]
+ * показывается Snackbar'ом, [FriendsEffect.OpenGroupEditor] открывает редактор группы через
+ * [onOpenGroupEditor]. Удаление друга идёт через диалог подтверждения
+ * ([FriendRemoveConfirmDialog], состояние [FriendsUiState.removeDialogFriend]).
  */
 @Composable
 internal fun FriendsScreen(
@@ -83,6 +91,18 @@ internal fun FriendsScreen(
                 onDismiss = { viewModel.onIntent(FriendsIntent.RemoveFriendDialogDismissed) },
             )
         }
+    }
+    if (uiState.isRequestsSheetVisible) {
+        FriendsRequestsSheet(
+            requests = uiState.incomingRequests,
+            busyUid = uiState.busyUid,
+            isRequestsLoadFailed = uiState.isRequestsLoadFailed,
+            errorText = uiState.actionError?.let { error -> errorText(error) },
+            onAcceptClick = { fromUid -> viewModel.onIntent(FriendsIntent.AcceptRequestClicked(fromUid)) },
+            onDeclineClick = { fromUid -> viewModel.onIntent(FriendsIntent.DeclineRequestClicked(fromUid)) },
+            onRetry = { viewModel.onIntent(FriendsIntent.ScreenShown) },
+            onDismiss = { viewModel.onIntent(FriendsIntent.RequestsSheetDismissed) },
+        )
     }
 }
 
@@ -146,28 +166,6 @@ private fun FriendsContent(
                     text = errorText(searchState.error),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        item {
-            Text(
-                text = stringResource(R.string.friends_section_requests),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(top = 8.dp),
-            )
-        }
-        if (uiState.isRequestsLoadFailed) {
-            // Падение секции заявок не скрывает других секций: inline-состояние + «Повторить».
-            item { FriendsLoadError(onRetry = { onIntent(FriendsIntent.ScreenShown) }) }
-        } else if (uiState.incomingRequests.isEmpty()) {
-            item { FriendsEmptyState(text = stringResource(R.string.friends_empty_requests)) }
-        } else {
-            items(uiState.incomingRequests, key = { it.fromUid }) { request ->
-                FriendsRequestCard(
-                    request = request,
-                    isBusy = uiState.busyUid == request.fromUid,
-                    onAcceptClick = { onIntent(FriendsIntent.AcceptRequestClicked(request.fromUid)) },
-                    onDeclineClick = { onIntent(FriendsIntent.DeclineRequestClicked(request.fromUid)) },
                 )
             }
         }

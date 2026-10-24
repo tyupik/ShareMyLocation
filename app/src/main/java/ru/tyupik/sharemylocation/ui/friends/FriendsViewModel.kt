@@ -70,6 +70,8 @@ class FriendsViewModel @Inject constructor(
     fun onIntent(intent: FriendsIntent) {
         when (intent) {
             FriendsIntent.ScreenShown -> onScreenShown()
+            FriendsIntent.RequestsBellClicked -> _uiState.update { it.copy(isRequestsSheetVisible = true) }
+            FriendsIntent.RequestsSheetDismissed -> _uiState.update { it.copy(isRequestsSheetVisible = false) }
             is FriendsIntent.SearchQueryChanged -> onSearchQueryChanged(intent.value)
             FriendsIntent.SearchClicked -> search()
             FriendsIntent.SearchCleared -> clearSearch()
@@ -89,8 +91,8 @@ class FriendsViewModel @Inject constructor(
     /**
      * Перезапуск realtime-потоков трактуется как чистый лист: вместе с триггером сбрасываем
      * [FriendsUiState.actionError], все три флага пассивной недоступности секций, поиск
-     * (вход на вкладку = чистый лист поиска: searchQuery, searchState, busyUid) и открытый
-     * диалог удаления друга (removeDialogFriend).
+     * (вход на вкладку = чистый лист поиска: searchQuery, searchState, busyUid), открытый
+     * диалог удаления друга (removeDialogFriend) и bottom-sheet заявок (isRequestsSheetVisible).
      * Списки friends/incomingRequests/groups НЕ чистим — realtime-потоки доставят свежие данные.
      * Следствие (осознанно): guard `busyUid != null → return` после сброса не защищает от
      * повторного клика по действию, оставшемуся в полёте с предыдущего показа вкладки, —
@@ -110,6 +112,7 @@ class FriendsViewModel @Inject constructor(
                 searchState = FriendsSearchUiState.Idle,
                 busyUid = null,
                 removeDialogFriend = null,
+                isRequestsSheetVisible = false,
             )
         }
     }

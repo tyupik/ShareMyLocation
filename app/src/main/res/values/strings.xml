@@ -37,6 +37,8 @@
     <string name="map_unavailable_no_api_key">Карта недоступна: не настроен API-ключ</string>
 
     <!-- Вкладка «Друзья» -->
+    <string name="friends_screen_title">Друзья</string>
+    <string name="friends_requests_bell">Заявки в друзья</string>
     <string name="friends_search_hint">Найдите друзей по номеру телефона</string>
     <string name="friends_search_placeholder">Номер телефона</string>
     <string name="friends_search_clear">Очистить поиск</string>
