@@ -1,5 +1,8 @@
 package ru.tyupik.sharemylocation.ui.main
 
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -22,6 +25,10 @@ import ru.tyupik.sharemylocation.ui.theme.ShareMyLocationTheme
  * Навигацию выполняет вызывающая сторона через [onSignedOut], [onEditProfile],
  * [onOpenSharingSettings] и [onOpenGroupEditor]: экран сам не знает про back stack,
  * лямбды вызываются только из коллекций Effect.
+ *
+ * Сбор Effect включает разовый запрос права POST_NOTIFICATIONS: системный диалог
+ * запускается Effect'ом [MainEffect.RequestNotificationsPermission], результат —
+ * intent'ом [MainIntent.NotificationsPermissionResult].
  */
 @Composable
 internal fun MainScreen(
@@ -33,10 +40,20 @@ internal fun MainScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    // Системный диалог права на уведомления: запускается Effect'ом, результат — intent'ом.
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        viewModel.onIntent(MainIntent.NotificationsPermissionResult(granted = granted))
+    }
+
     LaunchedEffect(Unit) {
         viewModel.effects.collect { effect ->
             when (effect) {
                 MainEffect.NavigateToAuth -> onSignedOut()
+                MainEffect.RequestNotificationsPermission -> notificationPermissionLauncher.launch(
+                    Manifest.permission.POST_NOTIFICATIONS,
+                )
             }
         }
     }

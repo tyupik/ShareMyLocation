@@ -25,10 +25,16 @@ sealed class MainIntent {
 
     /** Пользователь нажал «Выход» на вкладке «Профиль». */
     data object SignOutClicked : MainIntent()
+
+    /** Системный диалог права POST_NOTIFICATIONS закрыт — результат передаётся в контроллер. */
+    data class NotificationsPermissionResult(val granted: Boolean) : MainIntent()
 }
 
 /** One-off события экрана. */
 sealed class MainEffect {
     /** Выход выполнен — возвращаемся на экран аутентификации. */
     data object NavigateToAuth : MainEffect()
+
+    /** Показать системный диалог права на уведомления (один раз за установку). */
+    data object RequestNotificationsPermission : MainEffect()
 }

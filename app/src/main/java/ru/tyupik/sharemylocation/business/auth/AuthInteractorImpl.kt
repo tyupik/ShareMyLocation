@@ -2,6 +2,7 @@ package ru.tyupik.sharemylocation.business.auth
 
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.Flow
 import ru.tyupik.sharemylocation.business.common.User
 
 /** Реализация интерактора аутентификации поверх репозитория. */
@@ -22,6 +23,8 @@ class AuthInteractorImpl @Inject constructor(
     override suspend fun getCurrentUser(): User? = authRepository.getCurrentUser()
 
     override suspend fun signOut() = authRepository.signOut()
+
+    override fun observeAuthState(): Flow<User?> = authRepository.observeAuthState()
 
     private fun Result<Unit>.toAuthResult(): AuthResult = fold(
         onSuccess = { AuthResult.Success },

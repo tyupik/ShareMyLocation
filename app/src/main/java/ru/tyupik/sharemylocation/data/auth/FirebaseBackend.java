@@ -164,7 +164,33 @@ public final class FirebaseBackend {
 
     /** Текущий пользователь сохранённой сессии либо null. */
     public User getCurrentUser() {
-        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        return toUser(FirebaseAuth.getInstance().getCurrentUser());
+    }
+
+    public void signOut() {
+        FirebaseAuth.getInstance().signOut();
+    }
+
+    /**
+     * Realtime-слушатель состояния аутентификации: эмитит сразу при регистрации слушателя
+     * (текущий пользователь или null) и далее при каждом sign-in/sign-out.
+     * Возвращает Runnable-отписку: Auth API не даёт ListenerRegistration, как Firestore.
+     */
+    public Runnable listenAuthState(AuthStateListener listener) {
+        Log.d(TAG, "listenAuthState: start");
+        FirebaseAuth.AuthStateListener firebaseListener = firebaseAuth ->
+            listener.onUpdated(toUser(firebaseAuth.getCurrentUser()));
+        FirebaseAuth.getInstance().addAuthStateListener(firebaseListener);
+        return () -> FirebaseAuth.getInstance().removeAuthStateListener(firebaseListener);
+    }
+
+    /** Колбэк слушателя состояния аутентификации; user == null — пользователь не аутентифицирован. */
+    public interface AuthStateListener {
+        void onUpdated(User user);
+    }
+
+    /** FirebaseUser сессии → User (без данных документа users — их здесь нет). */
+    private static User toUser(FirebaseUser firebaseUser) {
         if (firebaseUser == null) {
             return null;
         }
@@ -176,10 +202,6 @@ public final class FirebaseBackend {
             0L,
             false
         );
-    }
-
-    public void signOut() {
-        FirebaseAuth.getInstance().signOut();
     }
 
     /** Профиль текущего пользователя: данные сессии, дополненные документом users/{uid}. */

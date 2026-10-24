@@ -4,6 +4,9 @@ import java.util.concurrent.ExecutionException
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.withContext
 import ru.tyupik.sharemylocation.business.auth.AuthError
 import ru.tyupik.sharemylocation.business.auth.AuthException
@@ -43,6 +46,17 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun signOut() {
         withContext(Dispatchers.IO) { backend.signOut() }
+    }
+
+    /** Realtime-слушатель backend'а проброшен через callbackFlow по образцу соседних репозиториев. */
+    override fun observeAuthState(): Flow<User?> = callbackFlow {
+        val unsubscribe: Runnable? = try {
+            backend.listenAuthState { user -> trySend(user) }
+        } catch (throwable: Throwable) {
+            close(toAuthException(throwable))
+            null
+        }
+        awaitClose { unsubscribe?.run() }
     }
 
     /** AuthException от backend проходит как есть, остальное заворачивается в Unexpected. */

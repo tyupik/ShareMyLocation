@@ -1,5 +1,6 @@
 package ru.tyupik.sharemylocation.business.auth
 
+import kotlinx.coroutines.flow.Flow
 import ru.tyupik.sharemylocation.business.common.User
 
 /**
@@ -25,4 +26,10 @@ interface AuthRepository {
     suspend fun getCurrentUser(): User?
 
     suspend fun signOut()
+
+    /**
+     * Realtime-поток состояния аутентификации: первая эмиссия — сохранённая сессия
+     * (или null), далее — при каждом sign-in/sign-out.
+     */
+    fun observeAuthState(): Flow<User?>
 }

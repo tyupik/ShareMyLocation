@@ -18,11 +18,13 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import ru.tyupik.sharemylocation.business.auth.AuthInteractor
 import ru.tyupik.sharemylocation.business.friends.FriendsInteractor
+import ru.tyupik.sharemylocation.business.notifications.NotificationPermissionController
 import ru.tyupik.sharemylocation.business.sharing.LocationSharingController
 
 /**
  * ViewModel главного экрана-контейнера: хранит выбранную вкладку, badge входящих заявок
- * в друзья и выполняет выход из аккаунта. Единственная публичная точка входа для UI — [onIntent].
+ * в друзья, выполняет выход из аккаунта и однократный запрос права на уведомления.
+ * Единственная публичная точка входа для UI — [onIntent].
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -30,6 +32,7 @@ class MainViewModel @Inject constructor(
     private val authInteractor: AuthInteractor,
     private val friendsInteractor: FriendsInteractor,
     private val locationSharingController: LocationSharingController,
+    private val notificationPermissionController: NotificationPermissionController,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState())
@@ -43,6 +46,7 @@ class MainViewModel @Inject constructor(
 
     init {
         observePendingRequests()
+        maybeRequestNotificationsPermission()
     }
 
     fun onIntent(intent: MainIntent) {
@@ -52,6 +56,8 @@ class MainViewModel @Inject constructor(
                 badgeTrigger.value += 1
             }
             MainIntent.SignOutClicked -> signOut()
+            is MainIntent.NotificationsPermissionResult ->
+                notificationPermissionController.onRequestResult(intent.granted)
         }
     }
 
@@ -77,6 +83,22 @@ class MainViewModel @Inject constructor(
                 .collect { requests ->
                     _uiState.update { it.copy(pendingRequestsCount = requests.size) }
                 }
+        }
+    }
+
+    /**
+     * Разовый запрос права на уведомления: диалог показывается, только если право фактически
+     * не выдано (на SDK < 33 право не существует — запрос не нужен) и ещё ни разу не показывался
+     * (флаг в NotificationPermissionController ставится при любом результате — отказ не навязывает
+     * повторный запрос).
+     */
+    private fun maybeRequestNotificationsPermission() {
+        viewModelScope.launch {
+            if (!notificationPermissionController.isGranted() &&
+                notificationPermissionController.shouldRequest()
+            ) {
+                _effects.send(MainEffect.RequestNotificationsPermission)
+            }
         }
     }
 

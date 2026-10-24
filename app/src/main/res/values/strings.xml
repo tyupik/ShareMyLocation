@@ -121,6 +121,18 @@
     <string name="sharing_notification_channel_name">Передача геопозиции</string>
     <string name="sharing_notification_channel_description">Показывает уведомление, пока приложение делится геопозицией</string>
 
+    <!-- Локальные уведомления о заявках и шаринге друзей -->
+    <string name="notification_channel_friend_requests_name">Заявки в друзья</string>
+    <string name="notification_channel_friend_requests_description">Уведомляет о новых заявках в друзья</string>
+    <string name="notification_channel_friend_sharing_name">Геопозиция друзей</string>
+    <string name="notification_channel_friend_sharing_description">Уведомляет, когда друзья начинают делиться геопозицией</string>
+    <string name="notification_friend_request_title">Заявка в друзья</string>
+    <string name="notification_friend_request_text">%1$s хочет добавиться в друзья</string>
+    <string name="notification_friend_request_text_no_name">У вас новая заявка в друзья</string>
+    <string name="notification_friend_sharing_title">Геопозиция друга</string>
+    <string name="notification_friend_sharing_text">%1$s начал(а) делиться геопозицией</string>
+    <string name="notification_friend_sharing_text_no_name">Ваш друг начал(а) делиться геопозицией</string>
+
     <!-- Вкладка «Профиль» -->
     <string name="profile_edit">Редактировать</string>
     <string name="profile_sharing_button">Делиться геопозицией</string>
