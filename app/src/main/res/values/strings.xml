@@ -28,6 +28,8 @@
 
     <!-- Вкладка «Карта» -->
     <string name="map_open_list">На карте: %1$d</string>
+    <string name="map_last_seen_just_now">Только что</string>
+    <string name="map_last_seen_30s">30 секунд назад</string>
     <string name="map_locate_me">Показать меня</string>
     <string name="map_list_empty">Никто из друзей сейчас не делится</string>
     <string name="map_load_error">Не удалось загрузить карту. Проверьте интернет и попробуйте снова</string>

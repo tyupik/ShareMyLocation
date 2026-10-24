@@ -1,7 +1,10 @@
 package ru.tyupik.sharemylocation.ui.map
 
+import android.content.Context
 import android.text.format.DateUtils
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
+import ru.tyupik.sharemylocation.R
 import ru.tyupik.sharemylocation.business.map.VisibleFriend
 import ru.tyupik.sharemylocation.business.sharing.SharedLocation
 
@@ -18,7 +21,9 @@ data class VisibleFriendUiModel(
     val longitude: Double,
     val accuracyMeters: Double,
     val updatedAtMillis: Long,
-    /** «как давно» — относительное время последней точки; обновляется тиками 5 с и ScreenShown. */
+    /** «как давно»: «Только что» (≤ 30 с), «30 секунд назад» (30–60 с), минуты (≥ 60 с);
+     * обновляется тиками 5 с и ScreenShown.
+     */
     val lastSeenLabel: String,
 )
 
@@ -36,12 +41,15 @@ data class MyLocationUiModel(
 )
 
 /** Конвертер бизнес-моделей карты в Ui-модели вкладки «Карта». */
-class MapUiConverter @Inject constructor() {
+class MapUiConverter @Inject constructor(
+    @ApplicationContext private val context: Context,
+) {
 
     /**
-     * [avatarPath] заполняется ViewModel после дозагрузки аватара; [lastSeenLabel] считается
-     * DateUtils.getRelativeTimeSpanString с гранулярностью MINUTE — без новых зависимостей;
-     * для остановившейся точки метка «замораживается» до тика/ScreenShown.
+     * [avatarPath] заполняется ViewModel после дозагрузки аватара; «как давно» считается
+     * [lastSeenLabel]: «Только что» (≤ 30 с), «30 секунд назад» (30–60 с), далее минуты через
+     * DateUtils.getRelativeTimeSpanString (гранулярность MINUTE); для остановившейся точки
+     * метка «замораживается» до тика/ScreenShown.
      */
     fun convertVisibleFriend(friend: VisibleFriend, nowMillis: Long): VisibleFriendUiModel =
         VisibleFriendUiModel(
@@ -53,10 +61,27 @@ class MapUiConverter @Inject constructor() {
             longitude = friend.longitude,
             accuracyMeters = friend.accuracyMeters,
             updatedAtMillis = friend.updatedAtMillis,
-            lastSeenLabel = DateUtils
-                .getRelativeTimeSpanString(friend.updatedAtMillis, nowMillis, DateUtils.MINUTE_IN_MILLIS)
-                .toString(),
+            lastSeenLabel = lastSeenLabel(friend.updatedAtMillis, nowMillis),
         )
+
+    /**
+     * Метка «как давно» по [updatedAtMillis] относительно [nowMillis], три ветки:
+     * - ≤ [JUST_NOW_THRESHOLD_MS] (включая точки из будущего, elapsed < 0) — «Только что»;
+     * - < [DateUtils.MINUTE_IN_MILLIS] — фиксированная «30 секунд назад» (без плюрализации);
+     * - иначе — DateUtils с гранулярностью MINUTE (следует локали устройства).
+     * Границы: ровно 30 000 мс → «Только что», ровно 60 000 мс → минуты; из-за тикера 5 с
+     * пограничные состояния могут держаться до 5 с дольше — приемлемо.
+     */
+    private fun lastSeenLabel(updatedAtMillis: Long, nowMillis: Long): String {
+        val elapsedMillis = nowMillis - updatedAtMillis
+        return when {
+            elapsedMillis <= JUST_NOW_THRESHOLD_MS -> context.getString(R.string.map_last_seen_just_now)
+            elapsedMillis < DateUtils.MINUTE_IN_MILLIS -> context.getString(R.string.map_last_seen_30s)
+            else -> DateUtils
+                .getRelativeTimeSpanString(updatedAtMillis, nowMillis, DateUtils.MINUTE_IN_MILLIS)
+                .toString()
+        }
+    }
 
     /**
      * Фикс собственной локации ([SharedLocation] из business.sharing переиспользуется
@@ -68,4 +93,9 @@ class MapUiConverter @Inject constructor() {
             longitude = location.longitude,
             updatedAtMillis = nowMillis,
         )
+
+    private companion object {
+        /** Порог «Только что»: elapsed ≤ 30 с (верхняя граница минутной ветки — MINUTE_IN_MILLIS). */
+        const val JUST_NOW_THRESHOLD_MS = 30_000L
+    }
 }
