@@ -42,6 +42,7 @@
     <string name="friends_search_hint">Найдите друзей по номеру телефона</string>
     <string name="friends_search_placeholder">Номер телефона</string>
     <string name="friends_search_clear">Очистить поиск</string>
+    <string name="friends_search_pick_contact">Выбрать из контактов</string>
     <string name="friends_section_requests">Заявки</string>
     <string name="friends_section_friends">Друзья</string>
     <string name="friends_add_button">Добавить в друзья</string>
@@ -59,6 +60,8 @@
     <string name="friends_error_request_already_sent">Заявка этому пользователю уже отправлена</string>
     <string name="friends_error_request_already_incoming">Этот пользователь уже отправил вам заявку — примите её в списке заявок</string>
     <string name="friends_error_unexpected">Не удалось выполнить действие. Попробуйте ещё раз</string>
+    <string name="friends_error_contact_no_phone">У выбранного контакта нет телефона</string>
+    <string name="friends_error_contact_read_failed">Не удалось прочитать контакт. Попробуйте выбрать ещё раз</string>
     <string name="friends_load_error">Не удалось загрузить. Проверьте интернет и попробуйте снова</string>
     <string name="friends_retry">Повторить</string>
     <string name="friends_remove_dialog_title">Удалить друга?</string>

@@ -6,6 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -35,6 +36,7 @@ import ru.tyupik.sharemylocation.ui.friends.composable.FriendsEmptyState
 import ru.tyupik.sharemylocation.ui.friends.composable.FriendsErrorBanner
 import ru.tyupik.sharemylocation.ui.friends.composable.FriendsHeader
 import ru.tyupik.sharemylocation.ui.friends.composable.FriendsLoadError
+import ru.tyupik.sharemylocation.ui.friends.composable.FriendsPickContactButton
 import ru.tyupik.sharemylocation.ui.friends.composable.FriendsRequestsSheet
 import ru.tyupik.sharemylocation.ui.friends.composable.FriendsSearchField
 import ru.tyupik.sharemylocation.ui.friends.composable.FriendsSearchResultCard
@@ -75,8 +77,25 @@ internal fun FriendsScreen(
         }
     }
 
+    // Uri выбранного контакта: null — пикер закрыт без выбора, ViewModel отреагирует тихо.
+    val contactPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickContact()) { uri ->
+        viewModel.onIntent(FriendsIntent.ContactPicked(uri?.toString()))
+    }
+    val onPickContactClick: () -> Unit = {
+        try {
+            contactPickerLauncher.launch(null)
+        } catch (exception: ActivityNotFoundException) {
+            // Приложения контактов нет: исключение не глотаем, ошибку показывает VM.
+            viewModel.onIntent(FriendsIntent.ContactPickerUnavailable)
+        }
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
-        FriendsContent(uiState = uiState, onIntent = viewModel::onIntent)
+        FriendsContent(
+            uiState = uiState,
+            onIntent = viewModel::onIntent,
+            onPickContactClick = onPickContactClick,
+        )
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
@@ -110,6 +129,7 @@ internal fun FriendsScreen(
 private fun FriendsContent(
     uiState: FriendsUiState,
     onIntent: (FriendsIntent) -> Unit,
+    onPickContactClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -118,19 +138,30 @@ private fun FriendsContent(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item {
-            Text(
-                text = stringResource(R.string.friends_search_hint),
-                style = MaterialTheme.typography.titleMedium,
+            FriendsHeader(
+                requestCount = uiState.incomingRequests.size,
+                onBellClick = { onIntent(FriendsIntent.RequestsBellClicked) },
             )
         }
         item {
-            FriendsSearchField(
-                value = uiState.searchQuery,
-                isEnabled = uiState.busyUid == null,
-                onValueChange = { onIntent(FriendsIntent.SearchQueryChanged(it)) },
-                onSearch = { onIntent(FriendsIntent.SearchClicked) },
-                onClear = { onIntent(FriendsIntent.SearchCleared) },
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                FriendsSearchField(
+                    value = uiState.searchQuery,
+                    isEnabled = uiState.busyUid == null,
+                    onValueChange = { onIntent(FriendsIntent.SearchQueryChanged(it)) },
+                    onSearch = { onIntent(FriendsIntent.SearchClicked) },
+                    onClear = { onIntent(FriendsIntent.SearchCleared) },
+                    modifier = Modifier.weight(1f),
+                )
+                FriendsPickContactButton(
+                    isEnabled = uiState.busyUid == null,
+                    onClick = onPickContactClick,
+                )
+            }
         }
         uiState.actionError?.let { error ->
             item {
@@ -228,6 +259,8 @@ private fun errorText(error: FriendsUiError): String = when (error) {
     FriendsUiError.RequestAlreadySent -> stringResource(R.string.friends_error_request_already_sent)
     FriendsUiError.RequestAlreadyIncoming ->
         stringResource(R.string.friends_error_request_already_incoming)
+    FriendsUiError.ContactNoPhone -> stringResource(R.string.friends_error_contact_no_phone)
+    FriendsUiError.ContactReadFailed -> stringResource(R.string.friends_error_contact_read_failed)
     is FriendsUiError.Unexpected -> stringResource(R.string.friends_error_unexpected)
 }
 
@@ -235,6 +268,10 @@ private fun errorText(error: FriendsUiError): String = when (error) {
 @Composable
 private fun FriendsContentPreview() {
     ShareMyLocationTheme {
-        FriendsContent(uiState = FriendsUiState(isFriendsLoading = false), onIntent = {})
+        FriendsContent(
+            uiState = FriendsUiState(isFriendsLoading = false),
+            onIntent = {},
+            onPickContactClick = {},
+        )
     }
 }

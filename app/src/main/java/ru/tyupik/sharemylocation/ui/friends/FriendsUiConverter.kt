@@ -2,6 +2,7 @@ package ru.tyupik.sharemylocation.ui.friends
 
 import javax.inject.Inject
 import ru.tyupik.sharemylocation.business.common.User
+import ru.tyupik.sharemylocation.business.contacts.ContactsError
 import ru.tyupik.sharemylocation.business.friends.FriendRequest
 import ru.tyupik.sharemylocation.business.friends.FriendsError
 import ru.tyupik.sharemylocation.business.groups.Group
@@ -44,6 +45,12 @@ sealed class FriendsUiError {
 
     data object RequestAlreadyIncoming : FriendsUiError()
 
+    /** У выбранного из контактов друга нет телефона. */
+    data object ContactNoPhone : FriendsUiError()
+
+    /** Не удалось прочитать выбранный контакт (или пикер контактов недоступен). */
+    data object ContactReadFailed : FriendsUiError()
+
     data class Unexpected(val reason: String?) : FriendsUiError()
 }
 
@@ -83,5 +90,11 @@ class FriendsUiConverter @Inject constructor() {
         FriendsError.RequestAlreadyIncoming -> FriendsUiError.RequestAlreadyIncoming
         is FriendsError.Unexpected -> FriendsUiError.Unexpected(error.reason)
         FriendsError.UserNotFound -> FriendsUiError.Unexpected(error.toString())
+    }
+
+    /** Ошибки чтения телефонной книги попадают в тот же баннер действия, что и ошибки друзей. */
+    fun convertContactError(error: ContactsError): FriendsUiError = when (error) {
+        ContactsError.NoPhone -> FriendsUiError.ContactNoPhone
+        is ContactsError.ReadFailed -> FriendsUiError.ContactReadFailed
     }
 }

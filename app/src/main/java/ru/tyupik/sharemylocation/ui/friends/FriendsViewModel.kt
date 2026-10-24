@@ -19,6 +19,9 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import ru.tyupik.sharemylocation.business.common.User
+import ru.tyupik.sharemylocation.business.contacts.ContactsError
+import ru.tyupik.sharemylocation.business.contacts.ContactsException
+import ru.tyupik.sharemylocation.business.contacts.ContactsInteractor
 import ru.tyupik.sharemylocation.business.friends.FriendRequest
 import ru.tyupik.sharemylocation.business.friends.FriendsError
 import ru.tyupik.sharemylocation.business.friends.FriendsException
@@ -39,6 +42,7 @@ import ru.tyupik.sharemylocation.business.profile.ProfileInteractor
 @HiltViewModel
 class FriendsViewModel @Inject constructor(
     private val friendsInteractor: FriendsInteractor,
+    private val contactsInteractor: ContactsInteractor,
     private val groupsInteractor: GroupsInteractor,
     private val profileInteractor: ProfileInteractor,
     private val friendsUiConverter: FriendsUiConverter,
@@ -75,6 +79,8 @@ class FriendsViewModel @Inject constructor(
             is FriendsIntent.SearchQueryChanged -> onSearchQueryChanged(intent.value)
             FriendsIntent.SearchClicked -> search()
             FriendsIntent.SearchCleared -> clearSearch()
+            is FriendsIntent.ContactPicked -> onContactPicked(intent.contactUri)
+            FriendsIntent.ContactPickerUnavailable -> onContactPickerUnavailable()
             is FriendsIntent.AddFriendClicked -> addFriend(intent.uid)
             is FriendsIntent.AcceptRequestClicked -> acceptRequest(intent.fromUid)
             is FriendsIntent.DeclineRequestClicked -> declineRequest(intent.fromUid)
@@ -228,6 +234,37 @@ class FriendsViewModel @Inject constructor(
 
     private fun clearSearch() = _uiState.update {
         it.copy(searchQuery = "", searchState = FriendsSearchUiState.Idle)
+    }
+
+    /**
+     * Выбран контакт из телефонной книги: подставляем первый телефон в поле поиска
+     * и сразу запускаем обычный поиск (нормализация и валидация — внутри [search]).
+     * null — пикер закрыт без выбора, реакция не нужна. searchState заранее в Loading
+     * НЕ ставим: guard в [search] заблокировал бы автопоиск.
+     */
+    private fun onContactPicked(contactUri: String?) {
+        if (contactUri == null) return
+        viewModelScope.launch {
+            contactsInteractor.getPhoneForSearch(contactUri).fold(
+                onSuccess = { phone ->
+                    _uiState.update { it.copy(searchQuery = phone) }
+                    search()
+                },
+                onFailure = { throwable ->
+                    Log.w(TAG, "Чтение телефона контакта не удалось", throwable)
+                    val error = (throwable as? ContactsException)?.error
+                        ?: ContactsError.ReadFailed(throwable.message)
+                    _uiState.update {
+                        it.copy(actionError = friendsUiConverter.convertContactError(error))
+                    }
+                },
+            )
+        }
+    }
+
+    /** Пикер контактов недоступен (нечем открыть выбор) — та же ошибка, что при сбое чтения. */
+    private fun onContactPickerUnavailable() {
+        _uiState.update { it.copy(actionError = FriendsUiError.ContactReadFailed) }
     }
 
     private fun addFriend(uid: String) {
