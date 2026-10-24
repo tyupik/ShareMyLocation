@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Пути для FileProvider: временные JPEG-файлы аватара, снятого на камеру. -->
+<paths>
+    <cache-path
+        name="camera_avatars"
+        path="camera/" />
+</paths>

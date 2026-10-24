@@ -60,6 +60,20 @@
         </service>
 
         <!--
+            FileProvider для аватаров, снятых на камеру: TakePicture получает content-Uri
+            временного файла из кэша (см. res/xml/file_paths.xml и CameraAvatarSource).
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <!--
             Foreground-сервис отправки геолокации (Фаза 6): старт/стоп — только через
             LocationSharingController (права и сессия проверяются до запуска).
         -->

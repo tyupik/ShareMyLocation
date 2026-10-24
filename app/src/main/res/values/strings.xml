@@ -139,4 +139,9 @@
     <string name="profile_setup_error_avatar_too_large">Не удалось сохранить фото: оно слишком большое</string>
     <string name="profile_setup_error_network">Не удалось сохранить профиль. Проверьте интернет и попробуйте снова</string>
     <string name="profile_setup_error_unexpected">Не удалось сохранить профиль. Попробуйте ещё раз</string>
+    <string name="profile_setup_avatar_source_title">Выбор фото</string>
+    <string name="profile_setup_avatar_source_gallery">Выбрать из галереи</string>
+    <string name="profile_setup_avatar_source_camera">Сделать фото</string>
+    <string name="profile_setup_avatar_source_cancel">Отмена</string>
+    <string name="profile_setup_error_camera_unavailable">Не удалось открыть камеру. Убедитесь, что на устройстве есть приложение камеры</string>
 </resources>
