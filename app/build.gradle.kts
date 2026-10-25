@@ -48,8 +48,8 @@ android {
         applicationId = "ru.tyupik.sharemylocation"
         minSdk = 24
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -75,10 +75,10 @@ android {
             if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")
             }
-            optimization {
-                enable = true
-                packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
-            }
+            // Без optimization/packageScope: в release-APK v1.0 оптимизация приватизировала
+            // классы kotlin.** и приложение падало на старте с
+            // java.lang.IllegalAccessError: Class kotlin.text.f extended by class i92
+            // ( Firebase Background Thread). Обычная R8-минификация release остаётся.
         }
     }
     compileOptions {
