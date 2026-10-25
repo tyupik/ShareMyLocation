@@ -18,6 +18,26 @@ val mapsApiKey: String = Properties().apply {
     }
 }.getProperty("MAPS_API_KEY", "")
 
+// Подпись release-APK: в CI параметры приходят через переменные окружения (GitHub Secrets),
+// локально — из keystore.properties в корне проекта. Ничего не задано — release собирается
+// без подписи (как раньше).
+val releaseSigningProperties = Properties().apply {
+    val keystoreProperties = rootProject.file("keystore.properties")
+    if (keystoreProperties.exists()) {
+        keystoreProperties.inputStream().use(::load)
+    }
+}
+val releaseStoreFilePath: String = System.getenv("RELEASE_STORE_FILE")
+    ?: releaseSigningProperties.getProperty("storeFile", "")
+val releaseStorePassword: String = System.getenv("RELEASE_STORE_PASSWORD")
+    ?: releaseSigningProperties.getProperty("storePassword", "")
+val releaseKeyAlias: String = System.getenv("RELEASE_KEY_ALIAS")
+    ?: releaseSigningProperties.getProperty("keyAlias", "")
+val releaseKeyPassword: String = System.getenv("RELEASE_KEY_PASSWORD")
+    ?: releaseSigningProperties.getProperty("keyPassword", "")
+val hasReleaseSigning = releaseStoreFilePath.isNotBlank() && releaseStorePassword.isNotBlank() &&
+    releaseKeyAlias.isNotBlank() && releaseKeyPassword.isNotBlank()
+
 android {
     namespace = "ru.tyupik.sharemylocation"
     compileSdk {
@@ -39,8 +59,22 @@ android {
         buildConfigField("String", "MAPS_API_KEY", "\"$mapsApiKey\"")
     }
 
+    if (hasReleaseSigning) {
+        signingConfigs {
+            create("release") {
+                storeFile = rootProject.file(releaseStoreFilePath)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             optimization {
                 enable = true
                 packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")

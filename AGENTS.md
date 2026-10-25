@@ -290,6 +290,29 @@ ru.tyupik.sharemylocation/
 
 ---
 
+# Релизы и CHANGELOG
+
+CI/CD настроен через `.github/workflows/android-release.yml`:
+
+- пуш в `main` — проверочная сборка release APK (artifact экшена);
+- пуш тега `v*` — сборка и публикация GitHub Release с APK (публичное скачивание),
+  описанием релиза становится секция этой версии из `CHANGELOG.md`.
+
+Обязательные правила:
+
+- **Каждая фича или заметный фикс — пункт в `CHANGELOG.md`** в секцию `## [Unreleased]`
+  (разделы: Добавлено / Изменено / Исправлено). Обновление changelog входит в коммит фичи.
+- **Релиз**: поднять `versionCode`/`versionName` в `app/build.gradle.kts`, переименовать
+  секцию `## [Unreleased]` в `## [<versionName>] — <дата>`, закоммитить, поставить тег
+  `v<versionName>` (например, `v1.1`) и запушить его. Patch notes в релиз подтянутся автоматически.
+- Номер версии берётся из тега и должен совпадать с `versionName`.
+
+Подпись release-APK: keystore в секретах репозитория (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`,
+`KEY_ALIAS`, `KEY_PASSWORD`), локальная копия — `keystore/release.jks` + `keystore.properties`
+(оба файла ignored; при их потере обновить приложение будет нельзя — беречь).
+
+---
+
 # Workflow
 
 ## Feature Spec Template

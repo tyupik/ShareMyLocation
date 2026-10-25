@@ -1,8 +1,17 @@
 # ShareMyLocation
 
+[![CI/CD](https://github.com/tyupik/ShareMyLocation/actions/workflows/android-release.yml/badge.svg)](https://github.com/tyupik/ShareMyLocation/actions/workflows/android-release.yml)
+
 Android-приложение для шаринга геолокации в реальном времени: добавляйте друзей по номеру телефона, объединяйте их в группы и смотрите, где они находятся, прямо на карте. Live-обновление позиций работает через Firestore-подписки, а отправка своей геопозиции — через foreground-сервис с интервалом 5 секунд.
 
 Приложение написано с нуля за **2 дня** в связке с мультиагентным AI-пайплайном — детали в разделе [«Как это сделано»](#как-это-сделано).
+
+## Скачать APK
+
+Готовый подписанный APK публикуется в [GitHub Releases](https://github.com/tyupik/ShareMyLocation/releases/latest) —
+скачивание доступно без авторизации. Список изменений каждой версии — в [CHANGELOG.md](CHANGELOG.md)
+и в описании соответствующего релиза.
+
 
 ## Скриншоты
 

@@ -14,3 +14,7 @@
 .cxx
 local.properties
 .kotlin/
+
+# Release-подпись: keystore и пароли только локально / в GitHub Secrets
+keystore/
+keystore.properties
