@@ -7,7 +7,7 @@ package ru.tyupik.sharemylocation.business.contacts
 interface ContactsInteractor {
 
     /**
-     * Первый телефон выбранного контакта «как есть» (нормализацию выполняет поиск друзей).
+     * Телефон выбранного контакта «как есть» (нормализацию выполняет поиск друзей).
      * Телефона нет — [ContactsError.NoPhone], сбой чтения — [ContactsError.ReadFailed].
      */
     suspend fun getPhoneForSearch(contactUri: String): Result<String>

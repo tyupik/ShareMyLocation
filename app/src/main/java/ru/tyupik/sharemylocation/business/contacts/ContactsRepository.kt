@@ -3,15 +3,15 @@ package ru.tyupik.sharemylocation.business.contacts
 /**
  * Контракт чтения телефонной книги через ContactsProvider.
  * READ_CONTACTS не требуется: репозиторий работает только с Uri, полученным от системного
- * контакт-пикера (ACTION_PICK), — вместе с результатом пикера выдаётся временный read-грант
- * на этот конкретный контакт.
+ * контакт-пикера (ACTION_PICK на таблицу телефонов) — вместе с результатом пикера выдаётся
+ * временный read-грант на Uri конкретного номера.
  */
 interface ContactsRepository {
 
     /**
-     * Читает первый телефон контакта [contactUri] «как есть», без нормализации.
-     * Приоритет номера: IS_SUPER_PRIMARY, затем IS_PRIMARY; null в успехе — у контакта
-     * нет телефона (или контакт по Uri не найден). Любой сбой чтения — [ContactsError.ReadFailed].
+     * Читает телефон по [contactUri] (Uri конкретного номера от пикера) «как есть»,
+     * без нормализации. Null в успехе — курсора нет или номера пусты; любой сбой чтения —
+     * [ContactsError.ReadFailed].
      */
     suspend fun readFirstPhone(contactUri: String): Result<String?>
 }

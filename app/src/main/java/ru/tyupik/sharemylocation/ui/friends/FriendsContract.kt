@@ -72,8 +72,9 @@ sealed class FriendsIntent {
     data object SearchCleared : FriendsIntent()
 
     /**
-     * Системный контакт-пикер вернул результат: [contactUri] — Uri выбранного контакта
-     * (читаем первый телефон и запускаем поиск по нему), null — пикер закрыт без выбора,
+     * Системный контакт-пикер вернул результат: [contactUri] — Uri конкретного телефона
+     * выбранного контакта (пикер ACTION_PICK на таблицу телефонов отдаёт его с временным
+     * read-грантом; читаем номер и запускаем поиск по нему), null — пикер закрыт без выбора,
      * реакция не нужна.
      */
     data class ContactPicked(val contactUri: String?) : FriendsIntent()

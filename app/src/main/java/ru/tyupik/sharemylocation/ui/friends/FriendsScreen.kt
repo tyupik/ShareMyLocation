@@ -1,6 +1,8 @@
 package ru.tyupik.sharemylocation.ui.friends
 
 import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.provider.ContactsContract
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -45,8 +47,9 @@ import ru.tyupik.sharemylocation.ui.friends.composable.GroupsHeader
 import ru.tyupik.sharemylocation.ui.theme.ShareMyLocationTheme
 
 /**
- * Вкладка «Друзья»: поиск по номеру телефона (вручную или из контактов через системный
- * пикер [ActivityResultContracts.PickContact] — кнопка [FriendsPickContactButton]), список
+ * Вкладка «Друзья»: поиск по номеру телефона (вручную или из контактов: ACTION_PICK на
+ * таблицу телефонов [ContactsContract.CommonDataKinds.Phone], кнопка [FriendsPickContactButton] —
+ * Uri конкретного номера приходит с временным read-грантом, READ_CONTACTS не нужен), список
  * друзей и группы. Входящие заявки — в bottom-sheet'е по колокольчику ([FriendsHeader],
  * состояние [FriendsUiState.isRequestsSheetVisible]), чтобы не забивать тело вкладки.
  * Realtime-обновления приходят потоками из интеракторов; перечитывание при показе вкладки
@@ -77,13 +80,17 @@ internal fun FriendsScreen(
         }
     }
 
-    // Uri выбранного контакта: null — пикер закрыт без выбора, ViewModel отреагирует тихо.
-    val contactPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickContact()) { uri ->
-        viewModel.onIntent(FriendsIntent.ContactPicked(uri?.toString()))
+    // Uri конкретного телефона выбранного контакта: null — пикер закрыт без выбора, VM отреагирует тихо.
+    val contactPickerLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        viewModel.onIntent(FriendsIntent.ContactPicked(result.data?.data?.toString()))
     }
     val onPickContactClick: () -> Unit = {
         try {
-            contactPickerLauncher.launch(null)
+            contactPickerLauncher.launch(
+                Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI),
+            )
         } catch (exception: ActivityNotFoundException) {
             // Приложения контактов нет: исключение не глотаем, ошибку показывает VM.
             viewModel.onIntent(FriendsIntent.ContactPickerUnavailable)

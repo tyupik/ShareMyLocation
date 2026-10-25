@@ -1,6 +1,5 @@
 package ru.tyupik.sharemylocation.data.contacts
 
-import android.content.ContentUris
 import android.content.Context
 import android.net.Uri
 import android.provider.ContactsContract
@@ -17,9 +16,9 @@ import ru.tyupik.sharemylocation.data.common.runSuspendCatching
 
 /**
  * Реализация чтения телефонной книги поверх ContactsProvider.
- * READ_CONTACTS не запрашивается: Uri приходит от системного контакт-пикера, который выдаёт
- * временный read-грант на выбранный контакт; грант действует только на этот Uri и отзывчив
- * после перезапуска процесса, поэтому телефон читается сразу по возврату с пикера.
+ * READ_CONTACTS не запрашивается: Uri приходит от системного пикера
+ * (ACTION_PICK на таблицу телефонов [ContactsContract.CommonDataKinds.Phone]) и уже снабжён
+ * временным read-грантом на этот конкретный номер, поэтому читаем его напрямую по Uri.
  * Все исключения чтения заворачиваются в [ContactsError.ReadFailed].
  */
 @Singleton
@@ -34,22 +33,17 @@ class ContactsRepositoryImpl @Inject constructor(
     }
 
     /**
-     * Канонизация Uri через [ContactsContract.Contacts.lookupContact] (пикер отдаёт
-     * lookup-Uri), затем запрос таблицы телефонов по CONTACT_ID с приоритетом
-     * IS_SUPER_PRIMARY → IS_PRIMARY; берётся первый непустой номер.
+     * Читает NUMBER прямо по Uri телефона от пикера; null-курсор или пустой результат —
+     * null (интерактор завернёт в NoPhone).
      */
     private fun resolveFirstPhone(contactUri: String): String? {
         val resolver = context.contentResolver
-        val lookupUri = ContactsContract.Contacts.lookupContact(resolver, Uri.parse(contactUri))
-            ?: return null
-        val contactId = ContentUris.parseId(lookupUri)
         return resolver.query(
-            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+            Uri.parse(contactUri),
             arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER),
-            "${ContactsContract.CommonDataKinds.Phone.CONTACT_ID} = ?",
-            arrayOf(contactId.toString()),
-            "${ContactsContract.CommonDataKinds.Phone.IS_SUPER_PRIMARY} DESC, " +
-                "${ContactsContract.CommonDataKinds.Phone.IS_PRIMARY} DESC",
+            null,
+            null,
+            null,
         )?.use { cursor ->
             while (cursor.moveToNext()) {
                 val phone = cursor.getString(0)

@@ -3,7 +3,7 @@ package ru.tyupik.sharemylocation.business.contacts
 /** Типизированные ошибки чтения телефонной книги; замаплены из ContactsProvider в data-слое. */
 sealed class ContactsError {
 
-    /** У выбранного контакта нет ни одного телефона (или контакт не найден). */
+    /** По Uri от пикера не удалось прочитать номер: нет строк или номер пуст. */
     data object NoPhone : ContactsError()
 
     /** ContactsProvider не ответил или упал при чтении (SecurityException, IOException и т.п.). */
