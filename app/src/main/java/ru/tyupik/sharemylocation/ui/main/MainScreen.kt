@@ -4,14 +4,20 @@ import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.chrisbanes.haze.hazeSource
@@ -97,10 +103,23 @@ private fun MainContent(
                 // Контент за нижней навигацией — источник захвата для backdrop-блюра
                 // (Scaffold рисует bottomBar после контента, hazeEffect видит захват).
                 .hazeSource(hazeState)
-                .padding(innerPadding),
+                // Карта — edge-to-edge (без innerPadding): insets уходят в contentPadding
+                // карты; «Друзья»/«Профиль» по-прежнему внутри отступа Scaffold.
+                .then(if (selectedTab == MainTab.MAP) Modifier else Modifier.padding(innerPadding)),
         ) {
             when (selectedTab) {
-                MainTab.MAP -> MapScreen(modifier = Modifier.fillMaxSize())
+                MainTab.MAP -> {
+                    val statusBarInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+                    val navigationBarsInset =
+                        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                    MapScreen(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(
+                            top = statusBarInset,
+                            bottom = navigationBarsInset + NAVBAR_CLEARANCE,
+                        ),
+                    )
+                }
                 MainTab.FRIENDS -> FriendsScreen(
                     onOpenGroupEditor = onOpenGroupEditor,
                     modifier = Modifier.fillMaxSize(),
@@ -115,6 +134,9 @@ private fun MainContent(
         }
     }
 }
+
+/** Запас над навбаром в contentPadding карты: плавающие кнопки не залезают под пилюлю. */
+private val NAVBAR_CLEARANCE = 76.dp
 
 @Preview(showBackground = true)
 @Composable
