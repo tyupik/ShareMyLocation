@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>AURORA — вариант 1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#05070F; font-family:'Manrope','Segoe UI',sans-serif; padding:56px 64px; }
+  .board { width: 2200px; }
+  .board-head { display:flex; align-items:flex-end; gap:36px; margin-bottom:48px; }
+  .num { font-size:15px; font-weight:800; letter-spacing:.3em; color:#22D3EE; text-transform:uppercase; margin-bottom:10px; }
+  .board-head h1 { font-size:64px; font-weight:800; color:#F1F5F9; letter-spacing:-0.02em; line-height:1; }
+  .board-head h1 span { background:linear-gradient(90deg,#818CF8,#22D3EE); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .tagline { font-size:19px; color:#8A94AD; max-width:560px; line-height:1.5; margin-top:14px; }
+  .board-right { margin-left:auto; display:flex; flex-direction:column; gap:18px; align-items:flex-end; }
+  .kw { display:flex; gap:10px; }
+  .kw div { font-size:13.5px; font-weight:600; color:#C3CDE0; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.04); padding:8px 16px; border-radius:999px; }
+  .pal { display:flex; gap:10px; }
+  .pal div { width:52px; height:52px; border-radius:14px; border:1px solid rgba(255,255,255,.12); }
+  .phones { display:flex; gap:40px; align-items:flex-start; }
+  figure { display:flex; flex-direction:column; align-items:center; gap:18px; }
+  figcaption { font-size:15px; font-weight:700; color:#8A94AD; letter-spacing:.08em; text-transform:uppercase; }
+  .phone { width:360px; height:784px; border-radius:48px; background:#02030A; padding:10px; box-shadow:0 30px 80px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.06); }
+  .screen { width:100%; height:100%; border-radius:38px; overflow:hidden; position:relative; background:#0B1020; color:#F1F5F9; }
+
+  /* ---------- общие ---------- */
+  .status { display:flex; justify-content:space-between; align-items:center; padding:16px 26px 8px; font-family:'Inter',sans-serif; font-size:13.5px; font-weight:600; color:#E2E8F0; position:relative; z-index:5; }
+  .sicons { display:flex; gap:6px; align-items:center; }
+  .glass { background:rgba(255,255,255,.055); border:1px solid rgba(255,255,255,.1); backdrop-filter:blur(14px); border-radius:22px; }
+  .grad-btn { background:linear-gradient(96deg,#6366F1 0%,#22D3EE 100%); color:#041018; font-weight:800; text-align:center; border-radius:16px; padding:16px; font-size:15.5px; box-shadow:0 8px 24px rgba(56,189,248,.35); }
+  .avatar { border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; color:#fff; flex-shrink:0; }
+  .dot-on { background:#34D399; box-shadow:0 0 0 3px rgba(52,211,153,.2); }
+  .homebar { position:absolute; bottom:8px; left:50%; transform:translateX(-50%); width:120px; height:5px; border-radius:3px; background:rgba(255,255,255,.35); z-index:9; }
+
+  /* ---------- ВХОД ---------- */
+  .aur-bg::before { content:''; position:absolute; width:420px; height:420px; border-radius:50%; background:radial-gradient(circle,#6366F1AA,transparent 65%); top:-140px; right:-140px; filter:blur(10px); }
+  .aur-bg::after { content:''; position:absolute; width:460px; height:460px; border-radius:50%; background:radial-gradient(circle,#22D3EE88,transparent 65%); bottom:-180px; left:-160px; filter:blur(10px); }
+  .auth-body { padding:36px 26px; display:flex; flex-direction:column; height:calc(100% - 44px); position:relative; z-index:2; }
+  .logo { width:76px; height:76px; border-radius:24px; background:linear-gradient(135deg,#6366F1,#22D3EE); display:flex; align-items:center; justify-content:center; box-shadow:0 12px 40px rgba(99,102,241,.5); margin:28px 0 30px; }
+  .auth-body h2 { font-size:30px; font-weight:800; letter-spacing:-.02em; }
+  .auth-sub { font-size:14.5px; color:#8A94AD; margin:10px 0 34px; line-height:1.5; }
+  .field { display:flex; align-items:center; gap:12px; padding:0 18px; height:56px; margin-bottom:14px; }
+  .field svg { flex-shrink:0; }
+  .field span { font-size:15px; color:#AEB8CC; font-weight:500; }
+  .field .eye { margin-left:auto; }
+  .auth-body .grad-btn { margin-top:12px; }
+  .or { display:flex; align-items:center; gap:14px; color:#5B6478; font-size:12.5px; font-weight:600; margin:26px 0; }
+  .or::before,.or::after { content:''; flex:1; height:1px; background:rgba(255,255,255,.1); }
+  .gbtn { display:flex; align-items:center; justify-content:center; gap:12px; height:56px; font-size:15px; font-weight:700; color:#E2E8F0; }
+  .auth-foot { margin-top:auto; text-align:center; font-size:13.5px; color:#5B6478; }
+  .auth-foot b { color:#22D3EE; font-weight:700; }
+
+  /* ---------- КАРТА ---------- */
+  .map-wrap { position:absolute; inset:0; }
+  .map-wrap svg.map { position:absolute; inset:0; width:100%; height:100%; }
+  .map-ui { position:relative; z-index:3; height:100%; display:flex; flex-direction:column; padding:12px 16px 14px; }
+  .map-search { display:flex; align-items:center; gap:10px; padding:0 16px; height:52px; margin-top:34px; }
+  .map-search span { font-size:14px; color:#5B6478; font-weight:500; }
+  .map-search .filt { margin-left:auto; }
+  .marker { position:absolute; z-index:2; display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .marker .m-ava { width:46px; height:46px; border-radius:50%; border:2.5px solid; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; color:#fff; box-shadow:0 8px 24px rgba(0,0,0,.5); }
+  .m-name { font-size:11.5px; font-weight:700; color:#E2E8F0; background:rgba(10,14,28,.85); border:1px solid rgba(255,255,255,.12); padding:4px 10px; border-radius:999px; white-space:nowrap; }
+  .me { position:absolute; z-index:2; width:22px; height:22px; border-radius:50%; background:linear-gradient(135deg,#22D3EE,#6366F1); box-shadow:0 0 0 8px rgba(34,211,238,.18), 0 0 0 18px rgba(34,211,238,.08); }
+  .fabs { position:absolute; right:16px; bottom:308px; display:flex; flex-direction:column; gap:10px; z-index:4; }
+  .fab { width:46px; height:46px; border-radius:16px; display:flex; align-items:center; justify-content:center; }
+  .sheet { padding:18px 16px 12px; }
+  .sheet-title { display:flex; align-items:center; gap:8px; font-size:16px; font-weight:800; margin-bottom:4px; }
+  .sheet-sub { font-size:12px; color:#5B6478; font-weight:600; margin-bottom:12px; }
+  .near-row { display:flex; align-items:center; gap:12px; padding:10px 8px; border-radius:16px; }
+  .near-row + .near-row { border-top:1px solid rgba(255,255,255,.06); }
+  .near-meta { flex:1; min-width:0; }
+  .near-meta b { display:block; font-size:14.5px; font-weight:700; }
+  .near-meta i { font-style:normal; font-size:12px; color:#5B6478; font-weight:500; }
+  .chip-on { font-size:11px; font-weight:800; padding:5px 10px; border-radius:999px; background:#34D399; color:#04281B; }
+  .chip-off { font-size:11px; font-weight:700; color:#8A94AD; padding:5px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.14); }
+
+  /* ---------- ДРУЗЬЯ ---------- */
+  .scr-body { padding:14px 22px 0; display:flex; flex-direction:column; height:calc(100% - 44px); position:relative; z-index:2; }
+  .h1row { display:flex; align-items:center; gap:10px; margin:6px 0 16px; }
+  .h1row h2 { font-size:30px; font-weight:800; letter-spacing:-.02em; }
+  .h1row .cnt { font-size:13px; font-weight:800; color:#22D3EE; background:rgba(34,211,238,.12); border:1px solid rgba(34,211,238,.25); padding:5px 12px; border-radius:999px; }
+  .h1row .plus { margin-left:auto; width:40px; height:40px; border-radius:14px; background:linear-gradient(135deg,#6366F1,#22D3EE); display:flex; align-items:center; justify-content:center; box-shadow:0 8px 20px rgba(99,102,241,.4); }
+  .search { display:flex; align-items:center; gap:10px; height:50px; padding:0 16px; margin-bottom:14px; }
+  .search span { font-size:14px; color:#5B6478; }
+  .tabs { display:flex; gap:8px; margin-bottom:20px; }
+  .tab { font-size:13px; font-weight:700; padding:9px 16px; border-radius:999px; color:#8A94AD; border:1px solid rgba(255,255,255,.12); }
+  .tab.act { color:#041018; background:linear-gradient(96deg,#6366F1,#22D3EE); border:none; box-shadow:0 6px 18px rgba(56,189,248,.3); }
+  .sec { font-size:12.5px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:#5B6478; margin:0 0 10px; }
+  .grp-row { display:flex; gap:12px; margin-bottom:22px; }
+  .grp-card { flex:1; padding:14px; }
+  .grp-card b { display:block; font-size:15px; font-weight:800; margin:10px 0 3px; }
+  .grp-card i { font-style:normal; font-size:12px; color:#5B6478; font-weight:600; }
+  .stack { display:flex; }
+  .stack .avatar { width:32px; height:32px; border:2px solid #141B30; margin-left:-9px; font-size:10.5px; }
+  .stack .avatar:first-child { margin-left:0; }
+  .stack .more { background:#1B2440; color:#8A94AD; }
+  .fr-row { display:flex; align-items:center; gap:13px; padding:11px 0; }
+  .fr-row + .fr-row { border-top:1px solid rgba(255,255,255,.055); }
+  .fr-ava-wrap { position:relative; }
+  .fr-ava-wrap .st { position:absolute; right:-1px; bottom:-1px; width:13px; height:13px; border-radius:50%; border:2.5px solid #0B1020; }
+  .fr-meta { flex:1; }
+  .fr-meta b { display:block; font-size:15px; font-weight:700; }
+  .fr-meta i { font-style:normal; font-size:12.5px; color:#5B6478; font-weight:500; }
+  .fr-meta .live { color:#34D399; font-weight:700; }
+  .icon-btn { width:38px; height:38px; border-radius:13px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); display:flex; align-items:center; justify-content:center; }
+
+  /* ---------- ШАРИНГ ---------- */
+  .bigcard { padding:18px; display:flex; align-items:center; gap:14px; margin-bottom:20px; }
+  .bigcard .t b { display:block; font-size:16.5px; font-weight:800; }
+  .bigcard .t i { font-style:normal; font-size:12.5px; color:#5B6478; font-weight:500; }
+  .switch { margin-left:auto; width:58px; height:34px; border-radius:999px; background:linear-gradient(96deg,#6366F1,#22D3EE); position:relative; box-shadow:0 6px 18px rgba(56,189,248,.35); }
+  .switch::after { content:''; position:absolute; top:4px; right:4px; width:26px; height:26px; border-radius:50%; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,.3); }
+  .opt { padding:16px; display:flex; align-items:center; gap:13px; margin-bottom:12px; }
+  .opt .emoji { width:46px; height:46px; border-radius:15px; display:flex; align-items:center; justify-content:center; }
+  .opt b { display:block; font-size:15.5px; font-weight:800; }
+  .opt i { font-style:normal; font-size:12.5px; color:#5B6478; font-weight:500; }
+  .radio { margin-left:auto; width:24px; height:24px; border-radius:50%; border:2px solid rgba(255,255,255,.22); flex-shrink:0; }
+  .opt.sel { border-color:rgba(34,211,238,.55); background:rgba(34,211,238,.07); box-shadow:0 0 0 1px rgba(34,211,238,.25), 0 10px 30px rgba(34,211,238,.08); }
+  .opt.sel .radio { border:none; background:linear-gradient(135deg,#6366F1,#22D3EE); display:flex; align-items:center; justify-content:center; }
+  .sel-list { padding:6px 16px 4px; margin-bottom:16px; }
+  .sel-row { display:flex; align-items:center; gap:12px; padding:11px 0; }
+  .sel-row + .sel-row { border-top:1px solid rgba(255,255,255,.055); }
+  .sel-row b { font-size:14.5px; font-weight:700; flex:1; }
+  .x { width:26px; height:26px; border-radius:9px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); display:flex; align-items:center; justify-content:center; color:#8A94AD; font-size:13px; font-weight:700; }
+
+  /* ---------- ПРОФИЛЬ ---------- */
+  .prof-head { display:flex; flex-direction:column; align-items:center; padding:14px 0 18px; position:relative; z-index:2; }
+  .prof-ava { width:98px; height:98px; border-radius:50%; padding:4px; background:linear-gradient(135deg,#6366F1,#22D3EE); }
+  .prof-ava .avatar { width:100%; height:100%; border:4px solid #0B1020; font-size:30px; }
+  .prof-head h3 { font-size:22px; font-weight:800; margin-top:14px; }
+  .prof-head p { font-size:13.5px; color:#5B6478; font-weight:500; margin-top:3px; }
+  .stats { display:flex; gap:10px; padding:0 22px; margin-bottom:18px; position:relative; z-index:2; }
+  .stat { flex:1; padding:13px 0; text-align:center; }
+  .stat b { display:block; font-size:21px; font-weight:800; background:linear-gradient(96deg,#818CF8,#22D3EE); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .stat i { font-style:normal; font-size:11.5px; color:#5B6478; font-weight:700; letter-spacing:.04em; }
+  .prof-list { padding:6px 22px; margin-bottom:16px; position:relative; z-index:2; }
+  .p-row { display:flex; align-items:center; gap:13px; padding:13px 4px; }
+  .p-row + .p-row { border-top:1px solid rgba(255,255,255,.055); }
+  .p-ic { width:38px; height:38px; border-radius:13px; display:flex; align-items:center; justify-content:center; }
+  .p-row b { font-size:14.5px; font-weight:700; flex:1; }
+  .prof-btns { padding:0 22px; display:flex; flex-direction:column; gap:10px; position:relative; z-index:2; }
+  .ghost-btn { text-align:center; padding:15px; border-radius:16px; font-size:15px; font-weight:700; color:#F87171; background:rgba(248,113,113,.08); border:1px solid rgba(248,113,113,.22); }
+  .nav { position:absolute; bottom:18px; left:22px; right:22px; height:68px; border-radius:24px; display:flex; align-items:center; padding:0 10px; z-index:6; background:rgba(16,22,42,.82); border:1px solid rgba(255,255,255,.1); backdrop-filter:blur(16px); }
+  .nav-i { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; font-size:11px; font-weight:700; color:#5B6478; }
+  .nav-i.act { color:#22D3EE; }
+  .nav-i.act .nav-pill { background:linear-gradient(96deg,#6366F1,#22D3EE); color:#041018; }
+  .nav-pill { width:52px; height:30px; border-radius:999px; display:flex; align-items:center; justify-content:center; }
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="board-head">
+    <div>
+      <div class="num">Вариант 01</div>
+      <h1>AURORA — <span>ночной неон</span></h1>
+      <div class="tagline">Тёмная премиум-тема: матовое стекло, глубокий индиго-циан градиент, светящиеся маркеры на карте. Ощущение ночного города и дорогих финтех-приложений.</div>
+    </div>
+    <div class="board-right">
+      <div class="kw"><div>глассморфизм</div><div>неоновые градиенты</div><div>dark first</div><div>свечение</div></div>
+      <div class="pal">
+        <div style="background:#0B1020"></div><div style="background:#6366F1"></div><div style="background:#22D3EE"></div><div style="background:#34D399"></div><div style="background:#F1F5F9"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phones">
+
+    <!-- ============ ВХОД ============ -->
+    <figure>
+      <div class="phone"><div class="screen aur-bg">
+        <div class="status"><span>13:44</span><span class="sicons">
+          <svg width="15" height="11" viewBox="0 0 15 11" fill="#E2E8F0"><rect x="0" y="7" width="2.5" height="4" rx="1"/><rect x="4" y="5" width="2.5" height="6" rx="1"/><rect x="8" y="2.5" width="2.5" height="8.5" rx="1"/><rect x="12" y="0" width="2.5" height="11" rx="1"/></svg>
+          <svg width="16" height="11" viewBox="0 0 16 11" fill="none" stroke="#E2E8F0" stroke-width="1.4"><path d="M1 4a10 10 0 0 1 14 0"/><path d="M3.5 6.5a6.5 6.5 0 0 1 9 0"/><circle cx="8" cy="9.5" r="1.2" fill="#E2E8F0"/></svg>
+          <svg width="22" height="11" viewBox="0 0 22 11"><rect x="0.5" y="0.5" width="18" height="10" rx="3" fill="none" stroke="#E2E8F0"/><rect x="2" y="2" width="12" height="7" rx="1.5" fill="#34D399"/><path d="M20 3.5v4a2 2 0 0 0 0-4z" fill="#E2E8F0"/></svg>
+        </span></div>
+        <div class="auth-body">
+          <div class="logo">
+            <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#041018" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3" fill="#041018" stroke="none"/></svg>
+          </div>
+          <h2>С возвращением</h2>
+          <div class="auth-sub">Войдите, чтобы видеть друзей на карте в реальном времени</div>
+          <div class="field glass">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#5B6478" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg>
+            <span>ilya.petrov@mail.ru</span>
+          </div>
+          <div class="field glass">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#5B6478" stroke-width="1.8"><rect x="4" y="10" width="16" height="10" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+            <span>••••••••••</span>
+            <svg class="eye" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#5B6478" stroke-width="1.8"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12Z"/><circle cx="12" cy="12" r="2.6"/></svg>
+          </div>
+          <div class="grad-btn">Войти</div>
+          <div class="or">или продолжить через</div>
+          <div class="gbtn glass">
+            <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.1h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.7 2.9c2.3-2.1 3.7-5.2 3.7-8.6Z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-2.9l-3.8-3c-1 .7-2.4 1.2-4.2 1.2-3.2 0-6-2.1-7-5.1l-4 3.1C3 20.6 7.2 24 12 24Z"/><path fill="#FBBC05" d="M5 14.2a7.3 7.3 0 0 1 0-4.4l-4-3.1a12 12 0 0 0 0 10.6l4-3.1Z"/><path fill="#EA4335" d="M12 4.7c2.3 0 3.8 1 4.7 1.8l3.4-3.3C18 1.6 15.2 0 12 0 7.2 0 3 3.4 1 8.2l4 3.1c1-3 3.8-6.6 7-6.6Z"/></svg>
+            Войти через Google
+          </div>
+          <div class="auth-foot">Нет аккаунта? <b>Создать</b></div>
+        </div>
+        <div class="homebar"></div>
+      </div></div>
+      <figcaption>Вход</figcaption>
+    </figure>
+
+    <!-- ============ КАРТА ============ -->
+    <figure>
+      <div class="phone"><div class="screen">
+        <div class="map-wrap">
+          <svg class="map" viewBox="0 0 360 784" preserveAspectRatio="xMidYMid slice">
+            <rect width="360" height="784" fill="#0C1224"/>
+            <g stroke="#1A2440" stroke-width="1" fill="none" opacity=".7">
+              <path d="M-10 120 H370"/><path d="M-10 260 H370"/><path d="M-10 420 H370"/><path d="M-10 580 H370"/><path d="M-10 700 H370"/>
+              <path d="M60 -10 V794"/><path d="M150 -10 V794"/><path d="M250 -10 V794"/><path d="M310 -10 V794"/>
+            </g>
+            <g fill="#131C34">
+              <rect x="12" y="30" width="130" height="76" rx="10"/><rect x="170" y="24" width="88" height="60" rx="10"/>
+              <rect x="272" y="100" width="70" height="90" rx="10"/><rect x="16" y="140" width="60" height="100" rx="10"/>
+              <rect x="270" y="440" width="76" height="120" rx="10"/><rect x="20" y="560" width="110" height="90" rx="10"/>
+              <rect x="160" y="640" width="100" height="66" rx="10"/><rect x="30" y="300" width="70" height="70" rx="10"/>
+            </g>
+            <path d="M0 210 H360" stroke="#223052" stroke-width="14"/><path d="M0 490 H360" stroke="#223052" stroke-width="10"/>
+            <path d="M225 0 V784" stroke="#223052" stroke-width="12"/><path d="M90 0 V784" stroke="#1A2745" stroke-width="8"/>
+            <path d="M0 350 C120 340 200 380 360 330" stroke="#1A2745" stroke-width="7" fill="none"/>
+            <path d="M280 240 C330 300 320 420 300 560" stroke="#1A2745" stroke-width="7" fill="none"/>
+            <!-- парк -->
+            <path d="M20 590 q60 -40 130 -6 t40 90 q-70 34 -140 6 t-30 -90Z" fill="#0F2A22"/>
+            <circle cx="70" cy="620" r="10" fill="#174435"/><circle cx="110" cy="650" r="13" fill="#174435"/><circle cx="55" cy="660" r="8" fill="#174435"/>
+            <!-- вода -->
+            <path d="M0 730 q90 -44 190 -14 t170 10 V794 H0 Z" fill="#0D2B42" opacity=".9"/>
+            <!-- подсветка дорог -->
+            <path d="M0 210 H360" stroke="#2B3E68" stroke-width="2.5" opacity=".9"/>
+            <path d="M225 0 V784" stroke="#2B3E68" stroke-width="2" opacity=".7"/>
+          </svg>
+          <!-- маркеры -->
+          <div class="marker" style="left:96px; top:246px;">
+            <div class="m-ava" style="background:linear-gradient(135deg,#F472B6,#FB7185); border-color:#F472B6;">АС</div>
+          </div>
+          <div class="marker" style="left:196px; top:168px;">
+            <div class="m-ava" style="background:linear-gradient(135deg,#34D399,#22D3EE); border-color:#34D399;">МК</div>
+            <div class="m-name">Максим · 350 м</div>
+          </div>
+          <div class="marker" style="left:252px; top:470px;">
+            <div class="m-ava" style="background:linear-gradient(135deg,#A78BFA,#6366F1); border-color:#A78BFA;">ДВ</div>
+          </div>
+          <div class="marker" style="left:46px; top:520px;">
+            <div class="m-ava" style="background:linear-gradient(135deg,#FBBF24,#FB923C); border-color:#FBBF24;">ЛП</div>
+          </div>
+          <div class="me" style="left:164px; top:392px;"></div>
+        </div>
+        <div class="map-ui">
+          <div class="map-search glass">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#22D3EE" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <span>Поиск друзей и мест…</span>
+            <svg class="filt" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#5B6478" stroke-width="1.8"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+          </div>
+          <div style="flex:1"></div>
+          <div class="fabs">
+            <div class="fab glass">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E2E8F0" stroke-width="1.8"><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="1.6" fill="#22D3EE"/></svg>
+            </div>
+            <div class="fab glass">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E2E8F0" stroke-width="1.8"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/></svg>
+            </div>
+          </div>
+          <div class="sheet glass">
+            <div class="sheet-title">Рядом с вами
+              <span class="chip-on" style="margin-left:auto;">LIVE</span>
+            </div>
+            <div class="sheet-sub">обновляется каждые 5 секунд</div>
+            <div class="near-row">
+              <div class="avatar" style="width:44px;height:44px;font-size:14px;background:linear-gradient(135deg,#34D399,#22D3EE);">МК</div>
+              <div class="near-meta"><b>Максим</b><i>350 м · был 2 мин назад</i></div>
+              <span class="chip-on">в сети</span>
+            </div>
+            <div class="near-row">
+              <div class="avatar" style="width:44px;height:44px;font-size:14px;background:linear-gradient(135deg,#F472B6,#FB7185);">АС</div>
+              <div class="near-meta"><b>Аня</b><i>1,2 км · была 14 мин назад</i></div>
+              <span class="chip-off">недавно</span>
+            </div>
+            <div class="near-row">
+              <div class="avatar" style="width:44px;height:44px;font-size:14px;background:linear-gradient(135deg,#A78BFA,#6366F1);">ДВ</div>
+              <div class="near-meta"><b>Дима</b><i>4,8 км · был 1 ч назад</i></div>
+              <span class="chip-off">офлайн</span>
+            </div>
+          </div>
+        </div>
+        <div class="homebar"></div>
+      </div></div>
+      <figcaption>Карта · realtime</figcaption>
+    </figure>
+
+    <!-- ============ ДРУЗЬЯ ============ -->
+    <figure>
+      <div class="phone"><div class="screen aur-bg">
+        <div class="status"><span>13:45</span><span class="sicons"><span style="font-size:11px;color:#8A94AD;">●</span> 99</span></div>
+        <div class="scr-body">
+          <div class="h1row">
+            <h2>Друзья</h2><span class="cnt">12</span>
+            <div class="plus"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#041018" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+          </div>
+          <div class="search glass">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5B6478" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <span>Номер телефона или имя</span>
+          </div>
+          <div class="tabs">
+            <div class="tab act">Все</div><div class="tab">В сети · 4</div><div class="tab">Заявки · 2</div>
+          </div>
+          <div class="sec">Группы</div>
+          <div class="grp-row">
+            <div class="grp-card glass">
+              <div class="stack">
+                <div class="avatar" style="background:linear-gradient(135deg,#F472B6,#FB7185);">АС</div>
+                <div class="avatar" style="background:linear-gradient(135deg,#34D399,#22D3EE);">МК</div>
+                <div class="avatar" style="background:linear-gradient(135deg,#FBBF24,#FB923C);">ЛП</div>
+              </div>
+              <b>Семья</b><i>3 участника</i>
+            </div>
+            <div class="grp-card glass">
+              <div class="stack">
+                <div class="avatar" style="background:linear-gradient(135deg,#A78BFA,#6366F1);">ДВ</div>
+                <div class="avatar" style="background:linear-gradient(135deg,#38BDF8,#6366F1);">ОС</div>
+                <div class="avatar more">+2</div>
+              </div>
+              <b>Работа</b><i>4 участника</i>
+            </div>
+          </div>
+          <div class="sec">Все друзья</div>
+          <div class="fr-row">
+            <div class="fr-ava-wrap">
+              <div class="avatar" style="width:48px;height:48px;font-size:15px;background:linear-gradient(135deg,#34D399,#22D3EE);">МК</div>
+              <div class="st dot-on"></div>
+            </div>
+            <div class="fr-meta"><b>Максим</b><i><span class="live">в сети</span> · 350 м</i></div>
+            <div class="icon-btn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E2E8F0" stroke-width="1.9"><path d="M12 21s-7-5.1-7-11a7 7 0 0 1 14 0c0 5.9-7 11-7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg></div>
+          </div>
+          <div class="fr-row">
+            <div class="fr-ava-wrap">
+              <div class="avatar" style="width:48px;height:48px;font-size:15px;background:linear-gradient(135deg,#F472B6,#FB7185);">АС</div>
+              <div class="st dot-on"></div>
+            </div>
+            <div class="fr-meta"><b>Аня</b><i><span class="live">в сети</span> · 1,2 км</i></div>
+            <div class="icon-btn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E2E8F0" stroke-width="1.9"><path d="M12 21s-7-5.1-7-11a7 7 0 0 1 14 0c0 5.9-7 11-7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg></div>
+          </div>
+          <div class="fr-row">
+            <div class="fr-ava-wrap">
+              <div class="avatar" style="width:48px;height:48px;font-size:15px;background:linear-gradient(135deg,#FBBF24,#FB923C);">ЛП</div>
+              <div class="st" style="background:#5B6478;"></div>
+            </div>
+            <div class="fr-meta"><b>Лена</b><i>была 40 мин назад · 3,1 км</i></div>
+            <div class="icon-btn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E2E8F0" stroke-width="1.9"><path d="M12 21s-7-5.1-7-11a7 7 0 0 1 14 0c0 5.9-7 11-7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg></div>
+          </div>
+          <div class="fr-row">
+            <div class="fr-ava-wrap">
+              <div class="avatar" style="width:48px;height:48px;font-size:15px;background:linear-gradient(135deg,#A78BFA,#6366F1);">ДВ</div>
+              <div class="st" style="background:#5B6478;"></div>
+            </div>
+            <div class="fr-meta"><b>Дима</b><i>был 1 ч назад · 4,8 км</i></div>
+            <div class="icon-btn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#E2E8F0" stroke-width="1.9"><path d="M12 21s-7-5.1-7-11a7 7 0 0 1 14 0c0 5.9-7 11-7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg></div>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="nav-i"><div class="nav-pill"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 21s-7-5.1-7-11a7 7 0 0 1 14 0c0 5.9-7 11-7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg></div>Карта</div>
+          <div class="nav-i act"><div class="nav-pill"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="9" cy="8" r="3.4"/><path d="M2.5 20c.8-3.4 3.4-5 6.5-5s5.7 1.6 6.5 5"/><circle cx="17.5" cy="9" r="2.6"/><path d="M15.5 14.6c2.6.2 4.6 1.7 5.5 4.4"/></svg></div>Друзья</div>
+          <div class="nav-i"><div class="nav-pill"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c1.2-3.8 4-5.5 7.5-5.5s6.3 1.7 7.5 5.5"/></svg></div>Профиль</div>
+        </div>
+        <div class="homebar" style="bottom:4px;"></div>
+      </div></div>
+      <figcaption>Друзья и группы</figcaption>
+    </figure>
+
+    <!-- ============ ШАРИНГ ============ -->
+    <figure>
+      <div class="phone"><div class="screen aur-bg">
+        <div class="status"><span>13:46</span><span class="sicons">99</span></div>
+        <div class="scr-body">
+          <h2 style="font-size:28px;font-weight:800;letter-spacing:-.02em;margin:6px 0 4px;">Шаринг</h2>
+          <div style="font-size:13.5px;color:#5B6478;font-weight:500;margin-bottom:18px;">Кто видит мою геопозицию</div>
+          <div class="bigcard glass">
+            <div class="p-ic" style="background:rgba(52,211,153,.14);border:1px solid rgba(52,211,153,.3);">
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="1.9"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            </div>
+            <div class="t"><b>Делиться геопозицией</b><i>обновление каждые 5 сек</i></div>
+            <div class="switch"></div>
+          </div>
+          <div class="sec" style="margin-bottom:12px;">Кто видит меня</div>
+          <div class="opt glass">
+            <div class="emoji" style="background:rgba(99,102,241,.16);border:1px solid rgba(99,102,241,.3);">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="1.9"><circle cx="9" cy="8" r="3.4"/><path d="M2.5 20c.8-3.4 3.4-5 6.5-5s5.7 1.6 6.5 5"/><circle cx="17.5" cy="9" r="2.6"/><path d="M15.5 14.6c2.6.2 4.6 1.7 5.5 4.4"/></svg>
+            </div>
+            <div><b>Все друзья</b><i>12 человек</i></div>
+            <div class="radio"></div>
+          </div>
+          <div class="opt glass sel">
+            <div class="emoji" style="background:rgba(34,211,238,.14);border:1px solid rgba(34,211,238,.35);">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22D3EE" stroke-width="1.9"><circle cx="7.5" cy="7.5" r="2.9"/><circle cx="16.5" cy="7.5" r="2.9"/><path d="M2 19c.7-3 2.9-4.6 5.5-4.6S12.3 16 13 19"/><path d="M11 19c.7-3 2.9-4.6 5.5-4.6s4.8 1.6 5.5 4.6"/></svg>
+            </div>
+            <div><b>Выбранные люди и группы</b><i>2 группы · 1 человек</i></div>
+            <div class="radio"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#041018" stroke-width="3.4" stroke-linecap="round"><path d="m4.5 12.5 5 5 10-11"/></svg></div>
+          </div>
+          <div class="glass sel-list">
+            <div class="sel-row">
+              <div class="stack"><div class="avatar" style="width:34px;height:34px;font-size:11px;background:linear-gradient(135deg,#F472B6,#FB7185);">АС</div><div class="avatar" style="width:34px;height:34px;font-size:11px;background:linear-gradient(135deg,#FBBF24,#FB923C);">ЛП</div><div class="avatar more" style="width:34px;height:34px;font-size:11px;">+1</div></div>
+              <b>Семья</b><span class="x">✕</span>
+            </div>
+            <div class="sel-row">
+              <div class="stack"><div class="avatar" style="width:34px;height:34px;font-size:11px;background:linear-gradient(135deg,#A78BFA,#6366F1);">ДВ</div><div class="avatar" style="width:34px;height:34px;font-size:11px;background:linear-gradient(135deg,#38BDF8,#6366F1);">ОС</div><div class="avatar more" style="width:34px;height:34px;font-size:11px;">+2</div></div>
+              <b>Работа</b><span class="x">✕</span>
+            </div>
+            <div class="sel-row">
+              <div class="avatar" style="width:34px;height:34px;font-size:11px;background:linear-gradient(135deg,#34D399,#22D3EE);">МК</div>
+              <b>Максим</b><span class="x">✕</span>
+            </div>
+          </div>
+          <div class="grad-btn" style="margin-top:auto;margin-bottom:40px;">Сохранить</div>
+        </div>
+        <div class="homebar"></div>
+      </div></div>
+      <figcaption>Настройки шаринга</figcaption>
+    </figure>
+
+    <!-- ============ ПРОФИЛЬ ============ -->
+    <figure>
+      <div class="phone"><div class="screen aur-bg">
+        <div class="status"><span>13:47</span><span class="sicons">99</span></div>
+        <div style="display:flex;flex-direction:column;height:calc(100% - 44px);">
+          <div class="prof-head">
+            <div class="prof-ava"><div class="avatar" style="background:linear-gradient(135deg,#6366F1,#22D3EE);">ИП</div></div>
+            <h3>Илья Петров</h3>
+            <p>ilya.petrov@mail.ru · +7 921 000-00-00</p>
+          </div>
+          <div class="stats">
+            <div class="stat glass"><b>12</b><i>ДРУЗЕЙ</i></div>
+            <div class="stat glass"><b>3</b><i>ГРУППЫ</i></div>
+            <div class="stat glass"><b>4</b><i>В СЕТИ</i></div>
+          </div>
+          <div class="prof-list glass" style="padding-top:4px;padding-bottom:4px;">
+            <div class="p-row">
+              <div class="p-ic" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="1.9"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></div>
+              <b>Настройки шаринга</b>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#5B6478" stroke-width="2"><path d="m9 5 7 7-7 7"/></svg>
+            </div>
+            <div class="p-row">
+              <div class="p-ic" style="background:rgba(34,211,238,.13);border:1px solid rgba(34,211,238,.3);"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#22D3EE" stroke-width="1.9"><path d="M6 9a3 3 0 0 1 0-6 3 3 0 0 1 0 6Z"/><path d="M6 21a3 3 0 0 1 0-6"/><path d="M18 9a3 3 0 0 1 0-6"/><path d="M18 21a3 3 0 0 1 0-6"/><path d="M6 5h12M6 15h12"/></svg></div>
+              <b>Уведомления</b>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#5B6478" stroke-width="2"><path d="m9 5 7 7-7 7"/></svg>
+            </div>
+            <div class="p-row">
+              <div class="p-ic" style="background:rgba(167,139,250,.14);border:1px solid rgba(167,139,250,.3);"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="1.9"><path d="M20.5 14.5A8.5 8.5 0 0 0 9.5 3.5a8.5 8.5 0 1 0 11 11Z"/></svg></div>
+              <b>Тёмная тема</b>
+              <div class="switch" style="width:50px;height:29px;"><div style="position:absolute;top:3px;right:3px;width:23px;height:23px;border-radius:50%;background:#fff;"></div></div>
+            </div>
+          </div>
+          <div class="prof-btns" style="flex:1;">
+            <div class="grad-btn">Поделиться моей геопозицией</div>
+            <div class="ghost-btn">Выйти</div>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="nav-i"><div class="nav-pill"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 21s-7-5.1-7-11a7 7 0 0 1 14 0c0 5.9-7 11-7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg></div>Карта</div>
+          <div class="nav-i"><div class="nav-pill"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="9" cy="8" r="3.4"/><path d="M2.5 20c.8-3.4 3.4-5 6.5-5s5.7 1.6 6.5 5"/><circle cx="17.5" cy="9" r="2.6"/><path d="M15.5 14.6c2.6.2 4.6 1.7 5.5 4.4"/></svg></div>Друзья</div>
+          <div class="nav-i act"><div class="nav-pill"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c1.2-3.8 4-5.5 7.5-5.5s6.3 1.7 7.5 5.5"/></svg></div>Профиль</div>
+        </div>
+        <div class="homebar" style="bottom:4px;"></div>
+      </div></div>
+      <figcaption>Профиль</figcaption>
+    </figure>
+
+  </div>
+</div>
+</body>
+</html>
