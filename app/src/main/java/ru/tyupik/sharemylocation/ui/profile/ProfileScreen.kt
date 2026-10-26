@@ -11,9 +11,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -25,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ru.tyupik.sharemylocation.R
+import ru.tyupik.sharemylocation.ui.common.composable.LoadError
 import ru.tyupik.sharemylocation.ui.profile.composable.ProfileEditButton
 import ru.tyupik.sharemylocation.ui.profile.composable.ProfileHeader
 import ru.tyupik.sharemylocation.ui.profile.composable.ProfileInfoRow
@@ -127,21 +125,16 @@ private fun ProfileErrorContent(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = when (error) {
-                    ProfileUiError.Network -> stringResource(R.string.profile_error_network)
-                    is ProfileUiError.Unexpected -> stringResource(R.string.profile_error_unexpected)
-                },
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            TextButton(onClick = onRetry) {
-                Text(stringResource(R.string.profile_retry))
-            }
-        }
-    }
+    LoadError(
+        text = when (error) {
+            ProfileUiError.Network -> stringResource(R.string.profile_error_network)
+            is ProfileUiError.Unexpected -> stringResource(R.string.profile_error_unexpected)
+        },
+        retryText = stringResource(R.string.profile_retry),
+        onRetry = onRetry,
+        modifier = modifier,
+        isCentered = true,
+    )
 }
 
 @Preview(showBackground = true)
