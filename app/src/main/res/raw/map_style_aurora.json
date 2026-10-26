@@ -56,14 +56,14 @@
     "featureType": "landscape.man_made",
     "elementType": "geometry.fill",
     "stylers": [
-      { "color": "#1B2440" }
+      { "color": "#232C4C" }
     ]
   },
   {
     "featureType": "landscape.man_made",
     "elementType": "geometry.stroke",
     "stylers": [
-      { "color": "#253052" }
+      { "color": "#2E3A63" }
     ]
   },
   {
