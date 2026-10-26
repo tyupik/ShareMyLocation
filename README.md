@@ -17,11 +17,11 @@ Android-приложение для шаринга геолокации в ре�
 
 | Карта (realtime) | Друзья и группы | Редактор группы |
 |:---:|:---:|:---:|
-| <img src="docs/screenshots/01-map.png" width="260" alt="Карта с маркерами друзей"/> | <img src="docs/screenshots/02-friends.png" width="260" alt="Список друзей и группы"/> | <img src="docs/screenshots/03-group-editor.png" width="260" alt="Редактор группы"/> |
+| <img src="docs/screenshots/01-map.png" width="260" alt="Карта с маркерами друзей"/> | <img src="docs/screenshots/02-friends-v2.png" width="260" alt="Список друзей и группы"/> | <img src="docs/screenshots/03-group-editor.png" width="260" alt="Редактор группы"/> |
 
 | Настройки шаринга | Профиль | Вход |
 |:---:|:---:|:---:|
-| <img src="docs/screenshots/05-sharing-settings.png" width="260" alt="Настройки шаринга геопозиции"/> | <img src="docs/screenshots/04-profile.png" width="260" alt="Профиль пользователя"/> | <img src="docs/screenshots/06-auth.png" width="260" alt="Экран входа"/> |
+| <img src="docs/screenshots/05-sharing-settings.png" width="260" alt="Настройки шаринга геопозиции"/> | <img src="docs/screenshots/04-profile-v2.png" width="260" alt="Профиль пользователя"/> | <img src="docs/screenshots/06-auth.png" width="260" alt="Экран входа"/> |
 
 | Регистрация | | |
 |:---:|:---:|:---:|
