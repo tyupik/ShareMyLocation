@@ -10,6 +10,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import ru.tyupik.sharemylocation.R
+import ru.tyupik.sharemylocation.ui.common.composable.auroraOutlinedTextFieldColors
 
 /** Поле ввода названия группы. */
 @Composable
@@ -26,6 +27,7 @@ internal fun GroupEditorNameField(
         label = { Text(stringResource(R.string.groups_editor_name_label)) },
         singleLine = true,
         enabled = isEnabled,
+        colors = auroraOutlinedTextFieldColors(),
         keyboardOptions = KeyboardOptions(
             capitalization = KeyboardCapitalization.Words,
             imeAction = ImeAction.Done,
