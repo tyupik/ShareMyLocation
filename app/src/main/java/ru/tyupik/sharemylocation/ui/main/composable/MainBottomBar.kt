@@ -101,19 +101,20 @@ internal fun MainBottomBar(
         color = Color.Transparent,
         contentColor = MaterialTheme.colorScheme.onSurface,
         border = BorderStroke(1.dp, AuroraGlassBorder),
-        shape = MaterialTheme.shapes.extraLarge,
+        // Стадионная форма (радиус = половина высоты) — единый язык скругления с пилюлей
+        // активного таба: «пилюля в пилюле».
+        shape = CircleShape,
         modifier = modifier
             .padding(horizontal = 16.dp)
             .navigationBarsPadding()
             .padding(bottom = 12.dp),
     ) {
         // hazeEffect на внутреннем контейнере, а не на модификаторе Surface: блюр-регион
-        // должен повторять форму пилюли (клип по shapes.extraLarge), а не тянуться
-        // прямоугольником.
+        // должен повторять форму панели (клип по CircleShape), а не тянуться прямоугольником.
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(MaterialTheme.shapes.extraLarge)
+                .clip(CircleShape)
                 .hazeEffect(state = hazeState, style = auroraHazeStyle()),
         ) {
             val tabIndex = MAIN_TAB_ITEMS.indexOfFirst { it.tab == selectedTab }.coerceAtLeast(0)
