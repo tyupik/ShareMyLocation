@@ -21,6 +21,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import ru.tyupik.sharemylocation.R
+import ru.tyupik.sharemylocation.ui.common.composable.auroraOutlinedTextFieldColors
 
 /** Поле ввода пароля с переключателем видимости; [errorText] подсвечивает поле и выводится под ним. */
 @Composable
@@ -41,6 +42,7 @@ internal fun AuthPasswordField(
         enabled = isEnabled,
         isError = errorText != null,
         supportingText = errorText?.let { text -> { Text(text) } },
+        colors = auroraOutlinedTextFieldColors(),
         visualTransformation = if (isVisible) VisualTransformation.None else PasswordVisualTransformation(),
         trailingIcon = {
             PasswordVisibilityToggle(isVisible = isVisible, onToggle = { isVisible = !isVisible })

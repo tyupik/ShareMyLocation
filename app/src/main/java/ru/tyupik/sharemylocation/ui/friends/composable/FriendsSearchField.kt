@@ -15,6 +15,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import ru.tyupik.sharemylocation.R
+import ru.tyupik.sharemylocation.ui.common.composable.auroraOutlinedTextFieldColors
 
 /** Поле поиска друзей по номеру телефона: phone-клавиатура, IME action Search, кнопка очистки. */
 @Composable
@@ -33,6 +34,7 @@ internal fun FriendsSearchField(
         placeholder = { Text(stringResource(R.string.friends_search_placeholder)) },
         singleLine = true,
         enabled = isEnabled,
+        colors = auroraOutlinedTextFieldColors(),
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.Phone,
             imeAction = ImeAction.Search,

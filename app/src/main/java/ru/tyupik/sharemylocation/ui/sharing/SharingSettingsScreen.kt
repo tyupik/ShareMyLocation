@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ru.tyupik.sharemylocation.R
+import ru.tyupik.sharemylocation.ui.common.composable.AuroraBackdrop
 import ru.tyupik.sharemylocation.ui.common.composable.LoadError
 import ru.tyupik.sharemylocation.ui.sharing.composable.SharingAudienceOption
 import ru.tyupik.sharemylocation.ui.sharing.composable.SharingCheckRow
@@ -90,7 +91,9 @@ internal fun SharingSettingsScreen(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        SharingSettingsContent(uiState = uiState, onIntent = viewModel::onIntent)
+        AuroraBackdrop {
+            SharingSettingsContent(uiState = uiState, onIntent = viewModel::onIntent)
+        }
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier

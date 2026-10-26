@@ -10,6 +10,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import ru.tyupik.sharemylocation.R
+import ru.tyupik.sharemylocation.ui.common.composable.auroraOutlinedTextFieldColors
 
 /** Поле ввода телефона; [errorText] показывается под полем и подсвечивает его как ошибочное. */
 @Composable
@@ -27,6 +28,7 @@ internal fun ProfileSetupPhoneField(
         label = { Text(stringResource(R.string.profile_setup_phone_label)) },
         singleLine = true,
         enabled = isEnabled,
+        colors = auroraOutlinedTextFieldColors(),
         isError = errorText != null,
         supportingText = if (errorText != null) {
             { Text(errorText) }

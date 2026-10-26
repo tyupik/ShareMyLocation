@@ -35,6 +35,7 @@ import ru.tyupik.sharemylocation.ui.auth.composable.AuthModeSwitcher
 import ru.tyupik.sharemylocation.ui.auth.composable.AuthOrDivider
 import ru.tyupik.sharemylocation.ui.auth.composable.AuthPasswordField
 import ru.tyupik.sharemylocation.ui.auth.composable.AuthSubmitButton
+import ru.tyupik.sharemylocation.ui.common.composable.AuroraBackdrop
 import ru.tyupik.sharemylocation.ui.theme.ShareMyLocationTheme
 
 /** Минимальная длина пароля Firebase Auth. */
@@ -132,76 +133,78 @@ private fun AuthContent(
         AuthUiError.EmailAlreadyInUse, null -> null
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .safeDrawingPadding()
-            .imePadding()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Spacer(modifier = Modifier.height(32.dp))
+    AuroraBackdrop {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .safeDrawingPadding()
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Spacer(modifier = Modifier.height(32.dp))
 
-        if (bannerErrorText != null) {
-            AuthErrorBanner(text = bannerErrorText, onDismiss = { onIntent(AuthIntent.ErrorDismissed) })
-        }
+            if (bannerErrorText != null) {
+                AuthErrorBanner(text = bannerErrorText, onDismiss = { onIntent(AuthIntent.ErrorDismissed) })
+            }
 
-        Text(
-            text = stringResource(if (isSignUp) R.string.auth_title_sign_up else R.string.auth_title_sign_in),
-            style = MaterialTheme.typography.headlineMedium,
-        )
-
-        AuthModeSwitcher(
-            mode = uiState.mode,
-            isEnabled = !isLoading,
-            onModeChanged = { onIntent(AuthIntent.ModeChanged(it)) },
-        )
-
-        AuthEmailField(
-            value = uiState.email,
-            isEnabled = !isLoading,
-            errorText = emailErrorText,
-            onValueChange = { onIntent(AuthIntent.EmailChanged(it)) },
-        )
-
-        if (isSignUp) {
-            AuthDisplayNameField(
-                value = uiState.displayName,
-                isEnabled = !isLoading,
-                onValueChange = { onIntent(AuthIntent.DisplayNameChanged(it)) },
+            Text(
+                text = stringResource(if (isSignUp) R.string.auth_title_sign_up else R.string.auth_title_sign_in),
+                style = MaterialTheme.typography.headlineMedium,
             )
-        }
 
-        AuthPasswordField(
-            value = uiState.password,
-            isEnabled = !isLoading,
-            errorText = passwordErrorText,
-            onValueChange = { onIntent(AuthIntent.PasswordChanged(it)) },
-        )
-
-        if (isSignUp) {
-            AuthConfirmPasswordField(
-                value = uiState.repeatedPassword,
+            AuthModeSwitcher(
+                mode = uiState.mode,
                 isEnabled = !isLoading,
-                errorText = confirmErrorText,
-                onValueChange = { onIntent(AuthIntent.RepeatedPasswordChanged(it)) },
+                onModeChanged = { onIntent(AuthIntent.ModeChanged(it)) },
             )
+
+            AuthEmailField(
+                value = uiState.email,
+                isEnabled = !isLoading,
+                errorText = emailErrorText,
+                onValueChange = { onIntent(AuthIntent.EmailChanged(it)) },
+            )
+
+            if (isSignUp) {
+                AuthDisplayNameField(
+                    value = uiState.displayName,
+                    isEnabled = !isLoading,
+                    onValueChange = { onIntent(AuthIntent.DisplayNameChanged(it)) },
+                )
+            }
+
+            AuthPasswordField(
+                value = uiState.password,
+                isEnabled = !isLoading,
+                errorText = passwordErrorText,
+                onValueChange = { onIntent(AuthIntent.PasswordChanged(it)) },
+            )
+
+            if (isSignUp) {
+                AuthConfirmPasswordField(
+                    value = uiState.repeatedPassword,
+                    isEnabled = !isLoading,
+                    errorText = confirmErrorText,
+                    onValueChange = { onIntent(AuthIntent.RepeatedPasswordChanged(it)) },
+                )
+            }
+
+            AuthSubmitButton(
+                text = stringResource(if (isSignUp) R.string.auth_sign_up_button else R.string.auth_sign_in_button),
+                isEnabled = isFormValid,
+                isLoading = isLoading,
+                onClick = {
+                    onIntent(if (isSignUp) AuthIntent.SignUpWithEmailClicked else AuthIntent.SignInWithEmailClicked)
+                },
+            )
+
+            AuthOrDivider()
+
+            AuthGoogleButton(isEnabled = !isLoading, onClick = onGoogleSignInClick)
         }
-
-        AuthSubmitButton(
-            text = stringResource(if (isSignUp) R.string.auth_sign_up_button else R.string.auth_sign_in_button),
-            isEnabled = isFormValid,
-            isLoading = isLoading,
-            onClick = {
-                onIntent(if (isSignUp) AuthIntent.SignUpWithEmailClicked else AuthIntent.SignInWithEmailClicked)
-            },
-        )
-
-        AuthOrDivider()
-
-        AuthGoogleButton(isEnabled = !isLoading, onClick = onGoogleSignInClick)
     }
 }
 

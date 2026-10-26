@@ -10,20 +10,24 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.rememberCameraPositionState
 import ru.tyupik.sharemylocation.BuildConfig
+import ru.tyupik.sharemylocation.R
 import ru.tyupik.sharemylocation.ui.map.composable.MapFriendMarkers
 import ru.tyupik.sharemylocation.ui.map.composable.MapFriendsListSheet
 import ru.tyupik.sharemylocation.ui.map.composable.MapLoadError
@@ -124,6 +128,11 @@ private fun MapContent(
     onIntent: (MapIntent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
+    // Тёмный стиль AURORA: при неудаче чтения ресурса карта остаётся дефолтной, без краша.
+    val mapStyleOptions = remember {
+        runCatching { MapStyleOptions.loadRawResourceScore(context, R.raw.map_style_aurora) }.getOrNull()
+    }
     Box(modifier = modifier.fillMaxSize()) {
         if (BuildConfig.MAPS_API_KEY.isBlank()) {
             // Без ключа карту не инициализируем вовсе: Maps SDK упал бы на старте фрагмента.
@@ -135,7 +144,10 @@ private fun MapContent(
                 // Синяя точка своего местоположения — только при фактических грантах:
                 // isMyLocationEnabled без прав — SecurityException Maps SDK. Встроенная
                 // кнопка выключена — центровка через MapLocateMeButton (снимает слежение).
-                properties = MapProperties(isMyLocationEnabled = uiState.hasLocationPermission),
+                properties = MapProperties(
+                    isMyLocationEnabled = uiState.hasLocationPermission,
+                    mapStyleOptions = mapStyleOptions,
+                ),
                 uiSettings = MapUiSettings(myLocationButtonEnabled = false),
             ) {
                 MapFriendMarkers(

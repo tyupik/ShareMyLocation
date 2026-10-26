@@ -27,7 +27,7 @@ internal fun MapFriendMarkers(
     friends.forEach { friend ->
         key(friend.uid) {
             val markerState = rememberUpdatedMarkerState(LatLng(friend.latitude, friend.longitude))
-            val icon = rememberFriendMarkerIcon(friend.avatarPath, friend.displayName)
+            val icon = rememberFriendMarkerIcon(friend.uid, friend.avatarPath, friend.displayName)
             Marker(
                 state = markerState,
                 title = friend.displayName,

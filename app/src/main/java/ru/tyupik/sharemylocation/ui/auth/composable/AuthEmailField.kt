@@ -10,6 +10,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import ru.tyupik.sharemylocation.R
+import ru.tyupik.sharemylocation.ui.common.composable.auroraOutlinedTextFieldColors
 
 /** Поле ввода email; [errorText] подсвечивает поле и выводится под ним. */
 @Composable
@@ -29,6 +30,7 @@ internal fun AuthEmailField(
         enabled = isEnabled,
         isError = errorText != null,
         supportingText = errorText?.let { text -> { Text(text) } },
+        colors = auroraOutlinedTextFieldColors(),
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.Email,
             imeAction = ImeAction.Next,

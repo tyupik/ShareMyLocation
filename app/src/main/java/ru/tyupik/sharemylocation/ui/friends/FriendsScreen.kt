@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ru.tyupik.sharemylocation.R
+import ru.tyupik.sharemylocation.ui.common.composable.AuroraBackdrop
 import ru.tyupik.sharemylocation.ui.friends.composable.FriendCard
 import ru.tyupik.sharemylocation.ui.friends.composable.FriendRemoveConfirmDialog
 import ru.tyupik.sharemylocation.ui.friends.composable.FriendsEmptyState
@@ -98,11 +99,13 @@ internal fun FriendsScreen(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        FriendsContent(
-            uiState = uiState,
-            onIntent = viewModel::onIntent,
-            onPickContactClick = onPickContactClick,
-        )
+        AuroraBackdrop {
+            FriendsContent(
+                uiState = uiState,
+                onIntent = viewModel::onIntent,
+                onPickContactClick = onPickContactClick,
+            )
+        }
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier

@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ru.tyupik.sharemylocation.R
+import ru.tyupik.sharemylocation.ui.common.composable.AuroraBackdrop
 import ru.tyupik.sharemylocation.ui.common.composable.LoadError
 import ru.tyupik.sharemylocation.ui.profile.composable.ProfileEditButton
 import ru.tyupik.sharemylocation.ui.profile.composable.ProfileHeader
@@ -57,23 +58,23 @@ internal fun ProfileScreen(
         }
     }
 
-    when (val state = uiState) {
-        ProfileUiState.Loading -> Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+    AuroraBackdrop(modifier = modifier) {
+        when (val state = uiState) {
+            ProfileUiState.Loading -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+
+            is ProfileUiState.Content -> ProfileContent(
+                profile = state.profile,
+                onIntent = viewModel::onIntent,
+                onSignOutClick = onSignOutClick,
+            )
+
+            is ProfileUiState.Error -> ProfileErrorContent(
+                error = state.error,
+                onRetry = { viewModel.onIntent(ProfileIntent.ScreenShown) },
+            )
         }
-
-        is ProfileUiState.Content -> ProfileContent(
-            profile = state.profile,
-            onIntent = viewModel::onIntent,
-            onSignOutClick = onSignOutClick,
-            modifier = modifier,
-        )
-
-        is ProfileUiState.Error -> ProfileErrorContent(
-            error = state.error,
-            onRetry = { viewModel.onIntent(ProfileIntent.ScreenShown) },
-            modifier = modifier,
-        )
     }
 }
 
