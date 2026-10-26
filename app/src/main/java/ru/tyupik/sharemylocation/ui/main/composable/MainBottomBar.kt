@@ -73,7 +73,7 @@ private val TABS_ROW_HORIZONTAL_PADDING = 8.dp
 private val TABS_ROW_VERTICAL_PADDING = 8.dp
 
 /** Вертикальный зазор пилюли активного таба от краёв навбара: стекло видно сверху и снизу. */
-private val PILL_VERTICAL_INSET = 6.dp
+private val PILL_VERTICAL_INSET = 8.dp
 
 /** Коэффициент затухания пружины смещения пилюли: лёгкий overshoot даёт «перекатывание». */
 private const val PILL_SPRING_DAMPING_RATIO = 0.75f

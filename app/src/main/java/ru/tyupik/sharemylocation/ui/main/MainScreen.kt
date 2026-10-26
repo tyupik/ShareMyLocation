@@ -135,8 +135,8 @@ private fun MainContent(
     }
 }
 
-/** Запас над навбаром в contentPadding карты: плавающие кнопки не залезают под пилюлю. */
-private val NAVBAR_CLEARANCE = 76.dp
+/** Запас над навбаром в contentPadding карты: зум, логотип Google и компас не залезают под пилюлю. */
+private val NAVBAR_CLEARANCE = 96.dp
 
 @Preview(showBackground = true)
 @Composable

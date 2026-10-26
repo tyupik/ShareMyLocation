@@ -213,7 +213,7 @@ private fun MapContent(
 private val LOCATE_BUTTON_BOTTOM_GAP = 132.dp
 
 /** Зазор чипа «N на карте» над нижним краем карты; отсчитывается от bottom у contentPadding. */
-private val LIST_BUTTON_BOTTOM_GAP = 16.dp
+private val LIST_BUTTON_BOTTOM_GAP = 28.dp
 
 /** Zoom камеры слежения за выбранным другом. */
 private const val SELECTED_ZOOM = 16f
