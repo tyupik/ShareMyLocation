@@ -15,6 +15,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import ru.tyupik.sharemylocation.ui.theme.AuroraButtonBrush
+import ru.tyupik.sharemylocation.ui.theme.AuroraCyan
+import ru.tyupik.sharemylocation.ui.theme.AuroraIndigo
 import ru.tyupik.sharemylocation.ui.theme.AuroraOnGradient
 
 /**
@@ -32,7 +34,12 @@ internal fun GradientPrimaryButton(
     val brush: Brush = if (isEnabled && !isLoading) {
         AuroraButtonBrush
     } else {
-        AuroraButtonBrush.copy(alpha = DISABLED_GRADIENT_ALPHA)
+        Brush.horizontalGradient(
+            listOf(
+                AuroraIndigo.copy(alpha = DISABLED_GRADIENT_ALPHA),
+                AuroraCyan.copy(alpha = DISABLED_GRADIENT_ALPHA),
+            ),
+        )
     }
     Button(
         onClick = onClick,

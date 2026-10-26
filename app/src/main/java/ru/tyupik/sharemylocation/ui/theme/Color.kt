@@ -26,12 +26,12 @@ val AuroraDangerBorder = Color(0x38F87171)
 
 // Палитра неоновых колец маркеров друзей (выбор по uid).
 val MARKER_NEON_COLORS = listOf(
-    0xFFF472B6,
-    0xFF34D399,
-    0xFFA78BFA,
-    0xFFFBBF24,
-    0xFF22D3EE,
-    0xFF38BDF8,
-    0xFFFB7185,
-    0xFFFB923C,
+    Color(0xFFF472B6),
+    Color(0xFF34D399),
+    Color(0xFFA78BFA),
+    Color(0xFFFBBF24),
+    Color(0xFF22D3EE),
+    Color(0xFF38BDF8),
+    Color(0xFFFB7185),
+    Color(0xFFFB923C),
 )

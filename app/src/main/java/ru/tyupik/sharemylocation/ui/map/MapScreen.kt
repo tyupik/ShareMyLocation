@@ -131,7 +131,7 @@ private fun MapContent(
     val context = LocalContext.current
     // Тёмный стиль AURORA: при неудаче чтения ресурса карта остаётся дефолтной, без краша.
     val mapStyleOptions = remember {
-        runCatching { MapStyleOptions.loadRawResourceScore(context, R.raw.map_style_aurora) }.getOrNull()
+        runCatching { MapStyleOptions.loadRawResourceStyle(context, R.raw.map_style_aurora) }.getOrNull()
     }
     Box(modifier = modifier.fillMaxSize()) {
         if (BuildConfig.MAPS_API_KEY.isBlank()) {

@@ -1,12 +1,13 @@
 package ru.tyupik.sharemylocation.ui.common.composable
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.ColumnScope
 import ru.tyupik.sharemylocation.ui.theme.AuroraAccentBorder
 import ru.tyupik.sharemylocation.ui.theme.AuroraGlass
 import ru.tyupik.sharemylocation.ui.theme.AuroraGlassBorder
@@ -26,6 +27,7 @@ internal fun GlassCard(
 ) {
     val color = if (isSelected) AuroraSelectedGlass else AuroraGlass
     val border = BorderStroke(1.dp, if (isSelected) AuroraAccentBorder else AuroraGlassBorder)
+    val cardContent: @Composable () -> Unit = { Column(content = content) }
     if (onClick != null) {
         Surface(
             onClick = onClick,
@@ -34,7 +36,7 @@ internal fun GlassCard(
             contentColor = MaterialTheme.colorScheme.onSurface,
             border = border,
             shape = MaterialTheme.shapes.large,
-            content = content,
+            content = cardContent,
         )
     } else {
         Surface(
@@ -43,7 +45,7 @@ internal fun GlassCard(
             contentColor = MaterialTheme.colorScheme.onSurface,
             border = border,
             shape = MaterialTheme.shapes.large,
-            content = content,
+            content = cardContent,
         )
     }
 }

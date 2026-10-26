@@ -88,9 +88,12 @@ internal fun MainBottomBar(
                     modifier = Modifier
                         .weight(1f)
                         .clip(CircleShape)
-                        .background(
-                            brush = if (isSelected) AuroraButtonBrush else AuroraButtonBrush.copy(alpha = 0f),
-                            shape = CircleShape,
+                        .then(
+                            if (isSelected) {
+                                Modifier.background(brush = AuroraButtonBrush, shape = CircleShape)
+                            } else {
+                                Modifier
+                            },
                         )
                         .clickable { onTabSelected(item.tab) }
                         .padding(vertical = 10.dp),
