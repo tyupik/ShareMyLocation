@@ -32,6 +32,7 @@ playServicesLocation = "21.3.0"
 mapsCompose = "8.3.1"
 imageCropper = "4.7.0"
 appcompat = "1.7.0"
+haze = "1.7.3"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -72,6 +73,7 @@ play-services-location = { group = "com.google.android.gms", name = "play-servic
 maps-compose = { group = "com.google.maps.android", name = "maps-compose", version.ref = "mapsCompose" }
 vanniktech-image-cropper = { group = "com.vanniktech", name = "android-image-cropper", version.ref = "imageCropper" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+haze = { group = "dev.chrisbanes.haze", name = "haze", version.ref = "haze" }
 play-services-integrity = { group = "com.google.android.play", name = "integrity", version.ref = "playIntegrity" }
 recaptcha = { group = "com.google.android.recaptcha", name = "recaptcha", version.ref = "recaptcha" }
 

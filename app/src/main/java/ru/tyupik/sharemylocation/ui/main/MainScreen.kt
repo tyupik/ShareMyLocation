@@ -14,6 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import ru.tyupik.sharemylocation.ui.friends.FriendsScreen
 import ru.tyupik.sharemylocation.ui.main.composable.MainBottomBar
 import ru.tyupik.sharemylocation.ui.map.MapScreen
@@ -77,11 +79,14 @@ private fun MainContent(
     onOpenSharingSettings: () -> Unit,
     onOpenGroupEditor: (String?) -> Unit,
 ) {
+    val hazeState = rememberHazeState()
+
     Scaffold(
         bottomBar = {
             MainBottomBar(
                 selectedTab = selectedTab,
                 friendsBadgeCount = pendingRequestsCount,
+                hazeState = hazeState,
                 onTabSelected = { onIntent(MainIntent.TabSelected(it)) },
             )
         },
@@ -89,6 +94,9 @@ private fun MainContent(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                // Контент за нижней навигацией — источник захвата для backdrop-блюра
+                // (Scaffold рисует bottomBar после контента, hazeEffect видит захват).
+                .hazeSource(hazeState)
                 .padding(innerPadding),
         ) {
             when (selectedTab) {
