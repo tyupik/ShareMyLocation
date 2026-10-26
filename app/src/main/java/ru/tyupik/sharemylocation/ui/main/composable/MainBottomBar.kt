@@ -1,8 +1,14 @@
 package ru.tyupik.sharemylocation.ui.main.composable
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,6 +29,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,12 +72,19 @@ private val TABS_ROW_HORIZONTAL_PADDING = 8.dp
 /** Вертикальный отступ контента вкладок внутри навбара. */
 private val TABS_ROW_VERTICAL_PADDING = 8.dp
 
+/** Коэффициент затухания пружины смещения пилюли: лёгкий overshoot даёт «перекатывание». */
+private const val PILL_SPRING_DAMPING_RATIO = 0.75f
+
+/** Начальный масштаб пилюли при смене таба: поджатие перед упругим возвратом к полному размеру. */
+private const val PILL_PULSE_START_SCALE = 0.94f
+
 /**
  * Нижняя навигация главного экрана: плавающая пилюля AURORA с вкладками Карта, Друзья,
  * Профиль. Фон — backdrop-блюр захваченного контента через [hazeEffect] (стиль
  * [auroraHazeStyle]); на вкладке «Карта» карта — SurfaceView и блюром не захватывается,
  * поэтому панель там остаётся полупрозрачным тонированным стеклом.
- * Активный таб — одна градиентная пилюля, отрисованная за контентом вкладок.
+ * Активный таб — одна градиентная пилюля: «перекатывается» пружиной к выбранному табу
+ * и пульсирует в такт переключению; цвет контента плавно перетекает следом.
  */
 @Composable
 internal fun MainBottomBar(
@@ -88,30 +104,46 @@ internal fun MainBottomBar(
             .navigationBarsPadding()
             .padding(bottom = 12.dp),
     ) {
-        // hazeEffect на внутреннем Box, а не на модификаторе Surface: блюр-регион должен
-        // повторять форму пилюли (клип по shapes.extraLarge), а не тянуться прямоугольником.
-        Box(
+        // hazeEffect на внутреннем контейнере, а не на модификаторе Surface: блюр-регион
+        // должен повторять форму пилюли (клип по shapes.extraLarge), а не тянуться
+        // прямоугольником.
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(MaterialTheme.shapes.extraLarge)
                 .hazeEffect(state = hazeState, style = auroraHazeStyle()),
         ) {
             val tabIndex = MAIN_TAB_ITEMS.indexOfFirst { it.tab == selectedTab }.coerceAtLeast(0)
+            // Ширина таба равная (weight(1f) у всех вкладок): вся ширина навбара минус
+            // отступы ряда контента, делённая на число вкладок.
+            val tabWidth = (maxWidth - TABS_ROW_HORIZONTAL_PADDING * 2) / MAIN_TAB_ITEMS.size
+            val pillX by animateDpAsState(
+                targetValue = TABS_ROW_HORIZONTAL_PADDING + tabWidth * tabIndex,
+                animationSpec = spring(dampingRatio = PILL_SPRING_DAMPING_RATIO),
+                label = "pillX",
+            )
+            // Скромный «пульс в такт» при смене таба: пилюля слегка поджимается и
+            // упруго возвращается к полному размеру.
+            val pillPulse = remember { Animatable(1f) }
+            LaunchedEffect(selectedTab) {
+                pillPulse.snapTo(PILL_PULSE_START_SCALE)
+                pillPulse.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy))
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     // Пилюля активного таба: одна на весь навбар, рисуется за контентом
-                    // вкладок. Ширина таба равная (weight(1f)), высота пилюли — вся
-                    // область отрисовки (badge вкладки учтётся сам).
+                    // вкладок. Высота — вся область отрисовки (badge вкладки учтётся сам),
+                    // пульс применяется как инсет пилюли.
                     .drawBehind {
-                        val pillWidth = (size.width - 2 * TABS_ROW_HORIZONTAL_PADDING.toPx()) /
-                            MAIN_TAB_ITEMS.size
-                        val pillLeft = TABS_ROW_HORIZONTAL_PADDING.toPx() + pillWidth * tabIndex
+                        val pillWidthPx = tabWidth.toPx()
+                        val insetX = pillWidthPx * (1f - pillPulse.value) / 2f
+                        val insetY = size.height * (1f - pillPulse.value) / 2f
                         drawRoundRect(
                             brush = AuroraButtonBrush,
-                            topLeft = Offset(pillLeft, 0f),
-                            size = Size(pillWidth, size.height),
-                            cornerRadius = CornerRadius(size.height / 2f),
+                            topLeft = Offset(pillX.toPx() + insetX, insetY),
+                            size = Size(pillWidthPx - insetX * 2f, size.height - insetY * 2f),
+                            cornerRadius = CornerRadius((size.height - insetY * 2f) / 2f),
                         )
                     }
                     .padding(
@@ -121,11 +153,14 @@ internal fun MainBottomBar(
             ) {
                 MAIN_TAB_ITEMS.forEach { item ->
                     val isSelected = selectedTab == item.tab
-                    val contentColor = if (isSelected) {
-                        AuroraOnGradient
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    }
+                    val contentColor by animateColorAsState(
+                        targetValue = if (isSelected) {
+                            AuroraOnGradient
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        label = "tabContentColor",
+                    )
                     Box(
                         modifier = Modifier
                             .weight(1f)
