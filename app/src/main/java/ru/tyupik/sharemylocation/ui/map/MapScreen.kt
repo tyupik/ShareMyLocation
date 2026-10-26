@@ -4,6 +4,7 @@ import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
@@ -42,6 +43,10 @@ import ru.tyupik.sharemylocation.ui.map.composable.MapUnavailableNotice
  * [MapIntent.ScreenShown]. Сбор Effect: запрос системного диалога прав геолокации,
  * результат — intent'ом [MapIntent.LocationPermissionsResult].
  *
+ * Карта рисуется на весь экран (edge-to-edge, без innerPadding Scaffold): системные
+ * отступы и место под плавающий навбар приходят через [contentPadding] — он же поднимает
+ * нативные zoom-контролы/компас и плавающие кнопки.
+ *
  * Слежение камеры — производная состояния в едином LaunchedEffect: без выбранного друга
  * камера центруется на свою точку ([MapUiState.myLocation] — каждый свежий фикс даёт новый
  * инстанс, StateFlow-дедупликации нет), при выборе — следует за тиками координат друга.
@@ -53,6 +58,7 @@ import ru.tyupik.sharemylocation.ui.map.composable.MapUnavailableNotice
 @Composable
 internal fun MapScreen(
     modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
     viewModel: MapViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -117,6 +123,7 @@ internal fun MapScreen(
         uiState = uiState,
         cameraPositionState = cameraPositionState,
         onIntent = viewModel::onIntent,
+        contentPadding = contentPadding,
         modifier = modifier,
     )
 }
@@ -126,6 +133,7 @@ private fun MapContent(
     uiState: MapUiState,
     cameraPositionState: CameraPositionState,
     onIntent: (MapIntent) -> Unit,
+    contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -141,6 +149,9 @@ private fun MapContent(
             GoogleMap(
                 modifier = Modifier.matchParentSize(),
                 cameraPositionState = cameraPositionState,
+                // Нативные zoom-контролы и компас поднимаются над плавающим навбаром
+                // и системными барами (карта — edge-to-edge, без innerPadding).
+                contentPadding = contentPadding,
                 // Синяя точка своего местоположения — только при фактических грантах:
                 // isMyLocationEnabled без прав — SecurityException Maps SDK. Встроенная
                 // кнопка выключена — центровка через MapLocateMeButton (снимает слежение).
@@ -157,12 +168,12 @@ private fun MapContent(
             }
             MapLocateMeButton(
                 onClick = { onIntent(MapIntent.LocateMeClicked) },
-                // end = 8.dp — выровнено с правым отступом нативных zoom-контролов Google;
-                // bottom = 132.dp — над стеком зума (~48dp x 2 от низа ~10–12dp, верх ≈ 106–116dp)
-                // с зазором ≥ 16dp.
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(end = 8.dp, bottom = 132.dp),
+                    .padding(
+                        end = 8.dp,
+                        bottom = contentPadding.calculateBottomPadding() + LOCATE_BUTTON_BOTTOM_GAP,
+                    ),
             )
         }
         if (uiState.isMapLoading && !uiState.isMapLoadFailed) {
@@ -182,7 +193,7 @@ private fun MapContent(
                 onClick = { onIntent(MapIntent.ShowListClicked) },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 16.dp),
+                    .padding(bottom = contentPadding.calculateBottomPadding() + LIST_BUTTON_BOTTOM_GAP),
             )
         }
     }
@@ -194,6 +205,15 @@ private fun MapContent(
         )
     }
 }
+
+/**
+ * Зазор кнопки центровки над стеком нативных zoom-контролов Google (~48dp x 2 от низа
+ * ~10–12dp, верх ≈ 106–116dp) с запасом ≥ 16dp; отсчитывается от bottom у contentPadding.
+ */
+private val LOCATE_BUTTON_BOTTOM_GAP = 132.dp
+
+/** Зазор чипа «N на карте» над нижним краем карты; отсчитывается от bottom у contentPadding. */
+private val LIST_BUTTON_BOTTOM_GAP = 16.dp
 
 /** Zoom камеры слежения за выбранным другом. */
 private const val SELECTED_ZOOM = 16f

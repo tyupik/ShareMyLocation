@@ -140,6 +140,9 @@ dependencies {
     // GoogleMap в Compose (Фаза 7): play-services-maps идёт транзитивно.
     implementation(libs.maps.compose)
 
+    // Блюр нижней навигации AURORA (dev.chrisbanes.haze).
+    implementation(libs.haze)
+
     // Google Sign-In через Credential Manager
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)

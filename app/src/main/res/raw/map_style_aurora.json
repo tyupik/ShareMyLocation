@@ -53,6 +53,20 @@
     ]
   },
   {
+    "featureType": "landscape.man_made",
+    "elementType": "geometry.fill",
+    "stylers": [
+      { "color": "#232C4C" }
+    ]
+  },
+  {
+    "featureType": "landscape.man_made",
+    "elementType": "geometry.stroke",
+    "stylers": [
+      { "color": "#2E3A63" }
+    ]
+  },
+  {
     "featureType": "road.highway",
     "elementType": "geometry.fill",
     "stylers": [
