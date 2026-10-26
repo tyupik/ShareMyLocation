@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>PULSE — вариант 3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#141414; font-family:'Inter','Segoe UI',sans-serif; padding:56px 64px; }
+  .board { width: 2200px; }
+  .board-head { display:flex; align-items:flex-end; gap:36px; margin-bottom:48px; }
+  .num { font-size:15px; font-weight:800; letter-spacing:.3em; color:#141414; text-transform:uppercase; margin-bottom:10px; }
+  .board-head h1 { font-family:'Unbounded','Arial Black',sans-serif; font-size:64px; font-weight:900; color:#141414; letter-spacing:-0.01em; line-height:1; background:#C6F24E; display:inline-block; padding:6px 24px 10px; border:3px solid #141414; box-shadow:10px 10px 0 #141414; transform:rotate(-1.2deg); }
+  .tagline { font-size:19px; color:#4A4A4A; max-width:540px; line-height:1.5; margin-top:22px; font-weight:500; }
+  .board-right { margin-left:auto; display:flex; flex-direction:column; gap:18px; align-items:flex-end; }
+  .kw { display:flex; gap:10px; }
+  .kw div { font-size:13.5px; font-weight:800; color:#141414; border:2.5px solid #141414; padding:7px 16px; border-radius:999px; background:#fff; }
+  .kw div:nth-child(1){ background:#C6F24E; } .kw div:nth-child(3){ background:#FF5A3C; color:#fff; }
+  .pal { display:flex; gap:10px; }
+  .pal div { width:52px; height:52px; border-radius:14px; border:3px solid #141414; box-shadow:4px 4px 0 #141414; }
+  .phones { display:flex; gap:40px; align-items:flex-start; }
+  figure { display:flex; flex-direction:column; align-items:center; gap:18px; }
+  figcaption { font-size:15px; font-weight:800; color:#777; letter-spacing:.1em; text-transform:uppercase; }
+  .phone { width:360px; height:784px; border-radius:44px; background:#141414; padding:10px; box-shadow:14px 14px 0 #C6F24E, 14px 14px 0 3px #141414; }
+  .screen { width:100%; height:100%; border-radius:34px; overflow:hidden; position:relative; background:#F6F3EA; color:#141414; }
+
+  .status { display:flex; justify-content:space-between; align-items:center; padding:16px 26px 8px; font-size:13.5px; font-weight:700; color:#141414; position:relative; z-index:5; }
+  .bcard { background:#fff; border:3px solid #141414; border-radius:22px; box-shadow:5px 5px 0 #141414; }
+  .btn { background:#141414; color:#C6F24E; font-family:'Unbounded','Arial Black',sans-serif; font-weight:700; text-align:center; border-radius:18px; padding:17px; font-size:15px; letter-spacing:.06em; text-transform:uppercase; border:3px solid #141414; box-shadow:5px 5px 0 #141414; }
+  .btn.lime { background:#C6F24E; color:#141414; }
+  .avatar { border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; color:#141414; flex-shrink:0; }
+  .homebar { position:absolute; bottom:8px; left:50%; transform:translateX(-50%); width:120px; height:5px; border-radius:3px; background:rgba(20,20,20,.35); z-index:9; }
+
+  /* ---------- ВХОД ---------- */
+  .auth-body { padding:14px 24px; display:flex; flex-direction:column; height:calc(100% - 44px); position:relative; z-index:2; }
+  .shout { font-family:'Unbounded','Arial Black',sans-serif; font-weight:900; font-size:56px; line-height:.95; text-transform:uppercase; letter-spacing:-.01em; margin-top:26px; }
+  .shout .l2 { color:#fff; background:#141414; display:inline-block; padding:2px 16px 6px; transform:rotate(-1.5deg); }
+  .shout .l3 { color:#141414; background:#FF5A3C; display:inline-block; padding:2px 16px 6px; transform:rotate(1deg); }
+  .auth-sub { font-size:14.5px; color:#55534B; margin:22px 0 24px; line-height:1.55; font-weight:600; }
+  .field { display:flex; align-items:center; gap:12px; padding:0 18px; height:60px; margin-bottom:14px; border:3px solid #141414; border-radius:18px; background:#fff; box-shadow:5px 5px 0 #141414; }
+  .field .fl { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; background:#C6F24E; border:2px solid #141414; border-radius:7px; padding:3px 8px; }
+  .field span { font-size:15px; color:#A19D90; font-weight:600; }
+  .auth-body .btn { margin-top:14px; }
+  .or { display:flex; align-items:center; gap:14px; color:#141414; font-size:12.5px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; margin:24px 0; }
+  .or::before,.or::after { content:''; flex:1; height:3px; border-radius:3px; background:#141414; }
+  .gbtn { display:flex; align-items:center; justify-content:center; gap:12px; height:60px; font-size:15px; font-weight:800; border:3px solid #141414; border-radius:18px; background:#F6F3EA; box-shadow:5px 5px 0 #141414; }
+  .auth-foot { margin-top:auto; text-align:center; font-size:13.5px; color:#55534B; font-weight:700; }
+  .auth-foot b { color:#141414; text-decoration:underline 3px #C6F24E; font-weight:800; }
+
+  /* ---------- КАРТА ---------- */
+  .map-wrap { position:absolute; inset:0; }
+  .map-wrap svg.map { position:absolute; inset:0; width:100%; height:100%; }
+  .map-ui { position:relative; z-index:3; height:100%; display:flex; flex-direction:column; padding:12px 16px 14px; }
+  .map-search { display:flex; align-items:center; gap:10px; padding:0 16px; height:54px; margin-top:34px; }
+  .map-search span { font-size:14px; color:#A19D90; font-weight:700; }
+  .marker { position:absolute; z-index:2; display:flex; flex-direction:column; align-items:center; gap:7px; }
+  .marker .m-ava { width:48px; height:48px; border-radius:50%; border:3px solid #141414; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; box-shadow:4px 4px 0 #141414; }
+  .m-name { font-size:11.5px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; background:#C6F24E; border:2.5px solid #141414; padding:4px 11px; border-radius:8px; white-space:nowrap; box-shadow:3px 3px 0 #141414; }
+  .me { position:absolute; z-index:2; width:26px; height:26px; border-radius:50%; background:#FF5A3C; border:4px solid #141414; box-shadow:0 0 0 9px rgba(255,90,60,.25); }
+  .fabs { position:absolute; right:16px; bottom:316px; display:flex; flex-direction:column; gap:14px; z-index:4; }
+  .fab { width:54px; height:54px; border-radius:18px; display:flex; align-items:center; justify-content:center; box-shadow:5px 5px 0 #141414; border:3px solid #141414; }
+  .sheet { padding:18px 16px 12px; }
+  .sheet-title { display:flex; align-items:center; gap:10px; font-family:'Unbounded',sans-serif; font-size:15px; font-weight:700; text-transform:uppercase; letter-spacing:.02em; }
+  .pulse-dot { width:12px; height:12px; border-radius:50%; background:#FF5A3C; border:2.5px solid #141414; }
+  .sheet-sub { font-size:12px; color:#55534B; font-weight:700; margin:4px 0 12px; }
+  .near-row { display:flex; align-items:center; gap:12px; padding:10px 6px; border-radius:14px; }
+  .near-row + .near-row { border-top:2px dashed #D8D3C4; }
+  .near-meta { flex:1; min-width:0; }
+  .near-meta b { display:block; font-size:15px; font-weight:800; }
+  .near-meta i { font-style:normal; font-size:12px; color:#55534B; font-weight:600; }
+  .tag { font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; padding:5px 10px; border-radius:8px; border:2.5px solid #141414; }
+  .tag.on { background:#C6F24E; } .tag.mv { background:#FFD447; } .tag.off { background:#E8E3D3; color:#77746A; }
+
+  /* ---------- ДРУЗЬЯ ---------- */
+  .scr-body { padding:14px 22px 0; display:flex; flex-direction:column; height:calc(100% - 44px); position:relative; z-index:2; }
+  .h1row { display:flex; align-items:center; gap:12px; margin:2px 0 16px; }
+  .h1row h2 { font-family:'Unbounded',sans-serif; font-size:36px; font-weight:900; text-transform:uppercase; letter-spacing:-.01em; }
+  .h1row .cnt { font-family:'Unbounded',sans-serif; font-size:15px; font-weight:700; background:#FF5A3C; color:#fff; border:3px solid #141414; padding:5px 13px; border-radius:12px; box-shadow:3px 3px 0 #141414; }
+  .h1row .plus { margin-left:auto; width:46px; height:46px; border-radius:15px; background:#C6F24E; border:3px solid #141414; display:flex; align-items:center; justify-content:center; box-shadow:4px 4px 0 #141414; }
+  .search { display:flex; align-items:center; gap:10px; height:54px; padding:0 16px; margin-bottom:14px; }
+  .search span { font-size:14px; color:#A19D90; font-weight:600; }
+  .tabs { display:flex; gap:10px; margin-bottom:20px; }
+  .tab { font-size:12.5px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; padding:10px 15px; border-radius:12px; border:3px solid #141414; background:#fff; box-shadow:3px 3px 0 #141414; }
+  .tab.act { background:#141414; color:#C6F24E; }
+  .tab .b { color:#FF5A3C; }
+  .tab.act .b { color:#FF5A3C; }
+  .sec { font-size:12px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:#77746A; margin:0 0 10px; }
+  .grp-row { display:flex; gap:14px; margin-bottom:22px; }
+  .grp-card { flex:1; padding:14px; }
+  .grp-card b { display:block; font-family:'Unbounded',sans-serif; font-size:15px; font-weight:700; text-transform:uppercase; margin:12px 0 4px; }
+  .grp-card i { font-style:normal; font-size:12px; color:#55534B; font-weight:700; }
+  .stack { display:flex; }
+  .stack .avatar { width:36px; height:36px; border:3px solid #141414; margin-left:-10px; font-size:11px; }
+  .stack .avatar:first-child { margin-left:0; }
+  .stack .more { background:#E8E3D3; color:#55534B; }
+  .fr-row { display:flex; align-items:center; gap:13px; padding:12px 2px; }
+  .fr-row + .fr-row { border-top:2px dashed #D8D3C4; }
+  .fr-ava-wrap { position:relative; }
+  .fr-ava-wrap .st { position:absolute; right:-3px; bottom:-3px; width:16px; height:16px; border-radius:50%; border:3px solid #F6F3EA; }
+  .fr-meta { flex:1; }
+  .fr-meta b { display:block; font-size:15.5px; font-weight:800; }
+  .fr-meta i { font-style:normal; font-size:12.5px; color:#55534B; font-weight:600; }
+  .icon-btn { width:42px; height:42px; border-radius:13px; background:#fff; border:3px solid #141414; display:flex; align-items:center; justify-content:center; box-shadow:3px 3px 0 #141414; }
+
+  /* ---------- ШАРИНГ ---------- */
+  .bigcard { padding:18px; display:flex; align-items:center; gap:14px; margin-bottom:22px; }
+  .bigcard .t b { display:block; font-family:'Unbounded',sans-serif; font-size:15px; font-weight:700; text-transform:uppercase; }
+  .bigcard .t i { font-style:normal; font-size:12px; color:#55534B; font-weight:700; }
+  .switch { margin-left:auto; width:64px; height:38px; border-radius:12px; background:#C6F24E; position:relative; border:3px solid #141414; box-shadow:3px 3px 0 #141414; }
+  .switch::after { content:'ON'; position:absolute; top:4px; right:5px; width:26px; height:24px; border-radius:8px; background:#141414; color:#C6F24E; font-size:8.5px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+  .sw-off { background:#E8E3D3; }
+  .sw-off::after { content:'OFF'; left:5px; right:auto; background:#fff; color:#141414; }
+  .opt { padding:16px; display:flex; align-items:center; gap:13px; margin-bottom:14px; }
+  .opt .emoji { width:50px; height:50px; border-radius:15px; display:flex; align-items:center; justify-content:center; border:3px solid #141414; flex-shrink:0; }
+  .opt b { display:block; font-family:'Unbounded',sans-serif; font-size:13.5px; font-weight:700; text-transform:uppercase; }
+  .opt i { font-style:normal; font-size:12px; color:#55534B; font-weight:700; }
+  .radio { margin-left:auto; width:28px; height:28px; border-radius:50%; border:3px solid #141414; background:#fff; flex-shrink:0; }
+  .opt.sel { background:#141414; color:#F6F3EA; box-shadow:5px 5px 0 #C6F24E, 5px 5px 0 3px #141414; }
+  .opt.sel b { color:#C6F24E; } .opt.sel i { color:#B5B0A0; }
+  .opt.sel .radio { border-color:#C6F24E; background:#C6F24E; display:flex; align-items:center; justify-content:center; }
+  .sel-list { padding:6px 18px 4px; margin-bottom:16px; }
+  .sel-row { display:flex; align-items:center; gap:12px; padding:12px 0; }
+  .sel-row + .sel-row { border-top:2px dashed #D8D3C4; }
+  .sel-row b { font-size:15px; font-weight:800; text-transform:uppercase; letter-spacing:.02em; flex:1; }
+  .x { width:30px; height:30px; border-radius:10px; background:#E8E3D3; border:3px solid #141414; display:flex; align-items:center; justify-content:center; color:#141414; font-size:13px; font-weight:800; }
+
+  /* ---------- ПРОФИЛЬ ---------- */
+  .prof-head { display:flex; align-items:center; gap:18px; padding:16px 22px 18px; position:relative; z-index:2; }
+  .prof-ava { width:92px; height:92px; border-radius:26px; background:#C6F24E; padding:5px; }
+  .prof-ava .avatar { width:100%; height:100%; border-radius:20px; font-family:'Unbounded',sans-serif; font-size:26px; border:3px solid #141414; }
+  .prof-head h3 { font-family:'Unbounded',sans-serif; font-size:21px; font-weight:900; text-transform:uppercase; line-height:1.05; }
+  .prof-head p { font-size:12.5px; color:#55534B; font-weight:700; margin-top:7px; }
+  .stats { display:flex; gap:12px; padding:0 22px; margin-bottom:16px; position:relative; z-index:2; }
+  .stat { flex:1; padding:12px 0 10px; text-align:center; }
+  .stat b { display:block; font-family:'Unbounded',sans-serif; font-size:23px; font-weight:900; }
+  .stat i { font-style:normal; font-size:10px; color:#55534B; font-weight:800; letter-spacing:.08em; }
+  .stat.s1 b { color:#3D5BFF; } .stat.s2 b { color:#FF5A3C; } .stat.s3 b { color:#0E9F6E; }
+  .prof-list { padding:8px 22px; margin-bottom:14px; position:relative; z-index:2; }
+  .p-row { display:flex; align-items:center; gap:13px; padding:14px 4px; }
+  .p-row + .p-row { border-top:2px dashed #D8D3C4; }
+  .p-ic { width:42px; height:42px; border-radius:13px; display:flex; align-items:center; justify-content:center; border:3px solid #141414; }
+  .p-row b { font-size:14px; font-weight:800; text-transform:uppercase; letter-spacing:.03em; flex:1; }
+  .prof-btns { padding:0 22px; display:flex; flex-direction:column; gap:12px; position:relative; z-index:2; }
+  .ghost-btn { text-align:center; padding:15px; border-radius:18px; font-family:'Unbounded',sans-serif; font-size:13px; font-weight:700; color:#141414; background:#fff; text-transform:uppercase; letter-spacing:.05em; border:3px solid #141414; box-shadow:5px 5px 0 #FF5A3C, 5px 5px 0 3px #141414; }
+  .nav { position:absolute; bottom:18px; left:22px; right:22px; height:74px; border-radius:22px; display:flex; align-items:center; padding:0 14px; z-index:6; background:#fff; border:3px solid #141414; box-shadow:5px 5px 0 #141414; }
+  .nav-i { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; font-size:10.5px; font-weight:800; color:#A19D90; text-transform:uppercase; letter-spacing:.04em; }
+  .nav-i.act { color:#141414; }
+  .nav-i.act .nav-pill { background:#C6F24E; }
+  .nav-pill { width:58px; height:33px; border-radius:11px; display:flex; align-items:center; justify-content:center; }
+  .sticker { position:absolute; font-family:'Unbounded',sans-serif; font-weight:900; font-size:11px; text-transform:uppercase; padding:6px 12px; border:3px solid #141414; border-radius:12px; background:#FFD447; transform:rotate(-4deg); box-shadow:3px 3px 0 #141414; z-index:4; }
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="board-head">
+    <div>
+      <div class="num">Вариант 03</div>
+      <h1>PULSE</h1>
+      <div class="tagline">Нео-брутализм: гигантская типографика, жёсткие чёрные рамки, смещённые тени и лаймовый акцент. Максимум энергии и характера — приложение, которое запоминают по скриншоту.</div>
+    </div>
+    <div class="board-right">
+      <div class="kw"><div>нео-брутализм</div><div>жирная типографика</div><div>лайм-акцент</div><div>хард-тени</div></div>
+      <div class="pal">
+        <div style="background:#F6F3EA"></div><div style="background:#C6F24E"></div><div style="background:#FF5A3C"></div><div style="background:#3D5BFF"></div><div style="background:#141414"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="phones">
+
+    <!-- ============ ВХОД ============ -->
+    <figure>
+      <div class="phone"><div class="screen">
+        <div class="status"><span>13:44</span><span class="sicons"><svg width="15" height="11" viewBox="0 0 15 11" fill="#141414"><rect x="0" y="7" width="2.5" height="4" rx="1"/><rect x="4" y="5" width="2.5" height="6" rx="1"/><rect x="8" y="2.5" width="2.5" height="8.5" rx="1"/><rect x="12" y="0" width="2.5" height="11" rx="1"/></svg><svg width="16" height="11" viewBox="0 0 16 11" fill="none" stroke="#141414" stroke-width="1.4"><path d="M1 4a10 10 0 0 1 14 0"/><path d="M3.5 6.5a6.5 6.5 0 0 1 9 0"/><circle cx="8" cy="9.5" r="1.2" fill="#141414"/></svg><svg width="22" height="11" viewBox="0 0 22 11"><rect x="0.5" y="0.5" width="18" height="10" rx="3" fill="none" stroke="#141414"/><rect x="2" y="2" width="13" height="7" rx="1.5" fill="#C6F24E"/><path d="M20 3.5v4a2 2 0 0 0 0-4z" fill="#141414"/></svg></span></div>
+        <div class="auth-body">
+          <div class="shout">Твой<br><span class="l2">круг.</span><br><span class="l3">На карте.</span></div>
+          <div class="auth-sub">Вход в ShareMyLocation — друзей видно вживую, каждые 5 секунд</div>
+          <div class="field">
+            <span class="fl">Email</span>
+            <span>ilya.petrov@mail.ru</span>
+          </div>
+          <div class="field">
+            <span class="fl">Пароль</span>
+            <span>••••••••••</span>
+          </div>
+          <div class="btn lime">Войти →</div>
+          <div class="or">или</div>
+          <div class="gbtn">
+            <svg width="21" height="21" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.1h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.7 2.9c2.3-2.1 3.7-5.2 3.7-8.6Z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-2.9l-3.8-3c-1 .7-2.4 1.2-4.2 1.2-3.2 0-6-2.1-7-5.1l-4 3.1C3 20.6 7.2 24 12 24Z"/><path fill="#FBBC05" d="M5 14.2a7.3 7.3 0 0 1 0-4.4l-4-3.1a12 12 0 0 0 0 10.6l4-3.1Z"/><path fill="#EA4335" d="M12 4.7c2.3 0 3.8 1 4.7 1.8l3.4-3.3C18 1.6 15.2 0 12 0 7.2 0 3 3.4 1 8.2l4 3.1c1-3 3.8-6.6 7-6.6Z"/></svg>
+            GOOGLE
+          </div>
+          <div class="auth-foot">Нет аккаунта? <b>Регистрация</b></div>
+        </div>
+        <div class="homebar"></div>
+      </div></div>
+      <figcaption>Вход</figcaption>
+    </figure>
+
+    <!-- ============ КАРТА ============ -->
+    <figure>
+      <div class="phone"><div class="screen">
+        <div class="map-wrap">
+          <svg class="map" viewBox="0 0 360 784" preserveAspectRatio="xMidYMid slice">
+            <rect width="360" height="784" fill="#EFEAD9"/>
+            <g fill="#E0DAC5">
+              <rect x="12" y="30" width="130" height="76" rx="6"/><rect x="170" y="24" width="88" height="60" rx="6"/>
+              <rect x="272" y="100" width="70" height="90" rx="6"/><rect x="16" y="140" width="60" height="100" rx="6"/>
+              <rect x="270" y="440" width="76" height="120" rx="6"/><rect x="20" y="560" width="110" height="90" rx="6"/>
+              <rect x="160" y="640" width="100" height="66" rx="6"/><rect x="30" y="300" width="70" height="70" rx="6"/>
+              <rect x="150" y="250" width="60" height="80" rx="6"/><rect x="60" y="400" width="80" height="90" rx="6"/>
+            </g>
+            <path d="M0 210 H360" stroke="#141414" stroke-width="14"/><path d="M0 490 H360" stroke="#141414" stroke-width="10"/>
+            <path d="M225 0 V784" stroke="#141414" stroke-width="12"/><path d="M90 0 V784" stroke="#141414" stroke-width="7"/>
+            <path d="M0 350 C120 340 200 380 360 330" stroke="#141414" stroke-width="6" fill="none"/>
+            <path d="M280 240 C330 300 320 420 300 560" stroke="#141414" stroke-width="6" fill="none"/>
+            <path d="M0 210 H360" stroke="#C6F24E" stroke-width="4" stroke-dasharray="18 12"/>
+            <path d="M20 590 q60 -40 130 -6 t40 90 q-70 34 -140 6 t-30 -90Z" fill="#CDE8C9"/>
+            <path d="M0 730 q90 -44 190 -14 t170 10 V794 H0 Z" fill="#C4DFF0"/>
+            <g fill="#141414" font-family="Inter,Arial" font-weight="800" font-size="9">
+              <text x="14" y="205" fill="#F6F3EA">НЕВСКИЙ</text>
+              <text x="232" y="120" transform="rotate(90 232 120)">ЛИГОВСКИЙ</text>
+            </g>
+          </svg>
+          <div class="marker" style="left:90px; top:248px;">
+            <div class="m-ava" style="background:#FFD447;">АС</div>
+          </div>
+          <div class="marker" style="left:186px; top:152px;">
+            <div class="m-ava" style="background:#C6F24E;">МК</div>
+            <div class="m-name">Максим · 350 м</div>
+          </div>
+          <div class="marker" style="left:248px; top:466px;">
+            <div class="m-ava" style="background:#9BC1FF;">ДВ</div>
+          </div>
+          <div class="marker" style="left:40px; top:508px;">
+            <div class="m-ava" style="background:#FF9D8A;">ЛП</div>
+          </div>
+          <div class="me" style="left:158px; top:388px;"></div>
+        </div>
+        <div class="map-ui">
+          <div class="map-search bcard">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2.6"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <span>Найти друга…</span>
+            <span class="fl" style="margin-left:auto;font-size:10px;font-weight:800;background:#C6F24E;border:2px solid #141414;border-radius:6px;padding:3px 8px;">⌘F</span>
+          </div>
+          <div style="flex:1"></div>
+          <div class="sticker" style="top:110px; right:18px;">5 сек назад</div>
+          <div class="fabs">
+            <div class="fab" style="background:#C6F24E;">
+              <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2.6"><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="1.8" fill="#141414"/></svg>
+            </div>
+            <div class="fab" style="background:#fff;">
+              <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2.6"><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/></svg>
+            </div>
+          </div>
+          <div class="sheet bcard">
+            <div class="sheet-title"><span class="pulse-dot"></span> Кто рядом</div>
+            <div class="sheet-sub">обновление: каждые 5 секунд</div>
+            <div class="near-row">
+              <div class="avatar" style="width:46px;height:46px;font-size:14px;background:#C6F24E;border:3px solid #141414;">МК</div>
+              <div class="near-meta"><b>Максим</b><i>350 м · 2 мин назад</i></div>
+              <span class="tag on">Live</span>
+            </div>
+            <div class="near-row">
+              <div class="avatar" style="width:46px;height:46px;font-size:14px;background:#FFD447;border:3px solid #141414;">АС</div>
+              <div class="near-meta"><b>Аня</b><i>1,2 км · 14 мин назад</i></div>
+              <span class="tag mv">В пути</span>
+            </div>
+            <div class="near-row">
+              <div class="avatar" style="width:46px;height:46px;font-size:14px;background:#E8E3D3;border:3px solid #141414;">ДВ</div>
+              <div class="near-meta"><b>Дима</b><i>4,8 км · 1 ч назад</i></div>
+              <span class="tag off">Офлайн</span>
+            </div>
+          </div>
+        </div>
+        <div class="homebar"></div>
+      </div></div>
+      <figcaption>Карта · realtime</figcaption>
+    </figure>
+
+    <!-- ============ ДРУЗЬЯ ============ -->
+    <figure>
+      <div class="phone"><div class="screen">
+        <div class="status"><span>13:45</span><span class="sicons"><svg width="15" height="11" viewBox="0 0 15 11" fill="#141414"><rect x="0" y="7" width="2.5" height="4" rx="1"/><rect x="4" y="5" width="2.5" height="6" rx="1"/><rect x="8" y="2.5" width="2.5" height="8.5" rx="1"/><rect x="12" y="0" width="2.5" height="11" rx="1"/></svg><svg width="16" height="11" viewBox="0 0 16 11" fill="none" stroke="#141414" stroke-width="1.4"><path d="M1 4a10 10 0 0 1 14 0"/><path d="M3.5 6.5a6.5 6.5 0 0 1 9 0"/><circle cx="8" cy="9.5" r="1.2" fill="#141414"/></svg><svg width="22" height="11" viewBox="0 0 22 11"><rect x="0.5" y="0.5" width="18" height="10" rx="3" fill="none" stroke="#141414"/><rect x="2" y="2" width="13" height="7" rx="1.5" fill="#C6F24E"/><path d="M20 3.5v4a2 2 0 0 0 0-4z" fill="#141414"/></svg></span></div>
+        <div class="scr-body">
+          <div class="h1row">
+            <h2>Друзья</h2><span class="cnt">12</span>
+            <div class="plus"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="3.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+          </div>
+          <div class="search bcard">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2.6"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <span>Телефон или имя</span>
+          </div>
+          <div class="tabs">
+            <div class="tab act">Все</div><div class="tab">В сети · 4</div><div class="tab">Заявки <span class="b">2</span></div>
+          </div>
+          <div class="sec">Группы</div>
+          <div class="grp-row">
+            <div class="grp-card bcard" style="background:#C6F24E;">
+              <div class="stack">
+                <div class="avatar" style="background:#FFD447;">АС</div>
+                <div class="avatar" style="background:#FF9D8A;">ЛП</div>
+                <div class="avatar" style="background:#fff;">МК</div>
+              </div>
+              <b>Семья</b><i>3 участника</i>
+            </div>
+            <div class="grp-card bcard" style="background:#9BC1FF;">
+              <div class="stack">
+                <div class="avatar" style="background:#fff;">ДВ</div>
+                <div class="avatar" style="background:#FFD447;">ОС</div>
+                <div class="avatar more">+2</div>
+              </div>
+              <b>Работа</b><i>4 участника</i>
+            </div>
+          </div>
+          <div class="sec">Все</div>
+          <div class="fr-row">
+            <div class="fr-ava-wrap">
+              <div class="avatar" style="width:50px;height:50px;font-size:15px;background:#C6F24E;border:3px solid #141414;">МК</div>
+              <div class="st" style="background:#0E9F6E;"></div>
+            </div>
+            <div class="fr-meta"><b>Максим</b><i>в сети · 350 м</i></div>
+            <div class="icon-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2.6"><path d="M12 21s-7-5.1-7-11a7 7 0 0 1 14 0c0 5.9-7 11-7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg></div>
+          </div>
+          <div class="fr-row">
+            <div class="fr-ava-wrap">
+              <div class="avatar" style="width:50px;height:50px;font-size:15px;background:#FFD447;border:3px solid #141414;">АС</div>
+              <div class="st" style="background:#0E9F6E;"></div>
+            </div>
+            <div class="fr-meta"><b>Аня</b><i>в сети · 1,2 км</i></div>
+            <div class="icon-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2.6"><path d="M12 21s-7-5.1-7-11a7 7 0 0 1 14 0c0 5.9-7 11-7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg></div>
+          </div>
+          <div class="fr-row">
+            <div class="fr-ava-wrap">
+              <div class="avatar" style="width:50px;height:50px;font-size:15px;background:#FF9D8A;border:3px solid #141414;">ЛП</div>
+              <div class="st" style="background:#C9C2AE;"></div>
+            </div>
+            <div class="fr-meta"><b>Лена</b><i>40 мин назад · 3,1 км</i></div>
+            <div class="icon-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2.6"><path d="M12 21s-7-5.1-7-11a7 7 0 0 1 14 0c0 5.9-7 11-7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg></div>
+          </div>
+          <div class="fr-row">
+            <div class="fr-ava-wrap">
+              <div class="avatar" style="width:50px;height:50px;font-size:15px;background:#9BC1FF;border:3px solid #141414;">ДВ</div>
+              <div class="st" style="background:#C9C2AE;"></div>
+            </div>
+            <div class="fr-meta"><b>Дима</b><i>1 ч назад · 4,8 км</i></div>
+            <div class="icon-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2.6"><path d="M12 21s-7-5.1-7-11a7 7 0 0 1 14 0c0 5.9-7 11-7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg></div>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="nav-i"><div class="nav-pill"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 21s-7-5.1-7-11a7 7 0 0 1 14 0c0 5.9-7 11-7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg></div>Карта</div>
+          <div class="nav-i act"><div class="nav-pill"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><circle cx="9" cy="8" r="3.4"/><path d="M2.5 20c.8-3.4 3.4-5 6.5-5s5.7 1.6 6.5 5"/><circle cx="17.5" cy="9" r="2.6"/><path d="M15.5 14.6c2.6.2 4.6 1.7 5.5 4.4"/></svg></div>Друзья</div>
+          <div class="nav-i"><div class="nav-pill"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c1.2-3.8 4-5.5 7.5-5.5s6.3 1.7 7.5 5.5"/></svg></div>Профиль</div>
+        </div>
+        <div class="homebar" style="bottom:4px;"></div>
+      </div></div>
+      <figcaption>Друзья и группы</figcaption>
+    </figure>
+
+    <!-- ============ ШАРИНГ ============ -->
+    <figure>
+      <div class="phone"><div class="screen">
+        <div class="status"><span>13:46</span><span class="sicons"><svg width="15" height="11" viewBox="0 0 15 11" fill="#141414"><rect x="0" y="7" width="2.5" height="4" rx="1"/><rect x="4" y="5" width="2.5" height="6" rx="1"/><rect x="8" y="2.5" width="2.5" height="8.5" rx="1"/><rect x="12" y="0" width="2.5" height="11" rx="1"/></svg><svg width="16" height="11" viewBox="0 0 16 11" fill="none" stroke="#141414" stroke-width="1.4"><path d="M1 4a10 10 0 0 1 14 0"/><path d="M3.5 6.5a6.5 6.5 0 0 1 9 0"/><circle cx="8" cy="9.5" r="1.2" fill="#141414"/></svg><svg width="22" height="11" viewBox="0 0 22 11"><rect x="0.5" y="0.5" width="18" height="10" rx="3" fill="none" stroke="#141414"/><rect x="2" y="2" width="13" height="7" rx="1.5" fill="#C6F24E"/><path d="M20 3.5v4a2 2 0 0 0 0-4z" fill="#141414"/></svg></span></div>
+        <div class="scr-body">
+          <div class="h1row" style="margin-bottom:6px;"><h2 style="font-size:32px;">Шаринг</h2></div>
+          <div style="font-size:13.5px;color:#55534B;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:18px;">Кто видит мою геопозицию</div>
+          <div class="bigcard bcard">
+            <div class="p-ic" style="background:#C6F24E;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2.6"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            </div>
+            <div class="t"><b>Делиться</b><i>каждые 5 секунд</i></div>
+            <div class="switch"></div>
+          </div>
+          <div class="sec" style="margin-bottom:12px;">Кто видит меня</div>
+          <div class="opt bcard">
+            <div class="emoji" style="background:#9BC1FF;">
+              <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2.6"><circle cx="9" cy="8" r="3.4"/><path d="M2.5 20c.8-3.4 3.4-5 6.5-5s5.7 1.6 6.5 5"/><circle cx="17.5" cy="9" r="2.6"/><path d="M15.5 14.6c2.6.2 4.6 1.7 5.5 4.4"/></svg>
+            </div>
+            <div><b>Все друзья</b><i>12 человек</i></div>
+            <div class="radio"></div>
+          </div>
+          <div class="opt bcard sel">
+            <div class="emoji" style="background:#FFD447;">
+              <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2.6"><circle cx="7.5" cy="7.5" r="2.9"/><circle cx="16.5" cy="7.5" r="2.9"/><path d="M2 19c.7-3 2.9-4.6 5.5-4.6S12.3 16 13 19"/><path d="M11 19c.7-3 2.9-4.6 5.5-4.6s4.8 1.6 5.5 4.6"/></svg>
+            </div>
+            <div><b>Выбранные</b><i>2 группы · 1 человек</i></div>
+            <div class="radio"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="4" stroke-linecap="round"><path d="m4.5 12.5 5 5 10-11"/></svg></div>
+          </div>
+          <div class="bcard sel-list">
+            <div class="sel-row">
+              <div class="stack"><div class="avatar" style="width:36px;height:36px;font-size:11px;background:#FFD447;">АС</div><div class="avatar" style="width:36px;height:36px;font-size:11px;background:#FF9D8A;">ЛП</div><div class="avatar more" style="width:36px;height:36px;font-size:11px;">+1</div></div>
+              <b>Семья</b><span class="x">✕</span>
+            </div>
+            <div class="sel-row">
+              <div class="stack"><div class="avatar" style="width:36px;height:36px;font-size:11px;background:#9BC1FF;">ДВ</div><div class="avatar" style="width:36px;height:36px;font-size:11px;background:#FFD447;">ОС</div><div class="avatar more" style="width:36px;height:36px;font-size:11px;">+2</div></div>
+              <b>Работа</b><span class="x">✕</span>
+            </div>
+            <div class="sel-row">
+              <div class="avatar" style="width:36px;height:36px;font-size:11px;background:#C6F24E;">МК</div>
+              <b>Максим</b><span class="x">✕</span>
+            </div>
+          </div>
+          <div class="btn" style="margin-top:auto;margin-bottom:40px;">Сохранить</div>
+        </div>
+        <div class="homebar"></div>
+      </div></div>
+      <figcaption>Настройки шаринга</figcaption>
+    </figure>
+
+    <!-- ============ ПРОФИЛЬ ============ -->
+    <figure>
+      <div class="phone"><div class="screen">
+        <div class="status"><span>13:47</span><span class="sicons"><svg width="15" height="11" viewBox="0 0 15 11" fill="#141414"><rect x="0" y="7" width="2.5" height="4" rx="1"/><rect x="4" y="5" width="2.5" height="6" rx="1"/><rect x="8" y="2.5" width="2.5" height="8.5" rx="1"/><rect x="12" y="0" width="2.5" height="11" rx="1"/></svg><svg width="16" height="11" viewBox="0 0 16 11" fill="none" stroke="#141414" stroke-width="1.4"><path d="M1 4a10 10 0 0 1 14 0"/><path d="M3.5 6.5a6.5 6.5 0 0 1 9 0"/><circle cx="8" cy="9.5" r="1.2" fill="#141414"/></svg><svg width="22" height="11" viewBox="0 0 22 11"><rect x="0.5" y="0.5" width="18" height="10" rx="3" fill="none" stroke="#141414"/><rect x="2" y="2" width="13" height="7" rx="1.5" fill="#C6F24E"/><path d="M20 3.5v4a2 2 0 0 0 0-4z" fill="#141414"/></svg></span></div>
+        <div style="display:flex;flex-direction:column;height:calc(100% - 44px);">
+          <div class="prof-head">
+            <div class="prof-ava"><div class="avatar" style="background:#fff;">ИП</div></div>
+            <div>
+              <h3>Илья<br>Петров</h3>
+              <p>ilya.petrov@mail.ru<br>+7 921 000-00-00</p>
+            </div>
+          </div>
+          <div class="stats">
+            <div class="stat bcard s1"><b>12</b><i>ДРУЗЕЙ</i></div>
+            <div class="stat bcard s2"><b>3</b><i>ГРУППЫ</i></div>
+            <div class="stat bcard s3"><b>4</b><i>В СЕТИ</i></div>
+          </div>
+          <div class="prof-list bcard">
+            <div class="p-row">
+              <div class="p-ic" style="background:#C6F24E;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2.6"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></div>
+              <b>Настройки шаринга</b>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="3"><path d="m9 5 7 7-7 7"/></svg>
+            </div>
+            <div class="p-row">
+              <div class="p-ic" style="background:#FFD447;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2.6"><path d="M6 9a3 3 0 0 1 0-6 3 3 0 0 1 0 6Z"/><path d="M6 21a3 3 0 0 1 0-6"/><path d="M18 9a3 3 0 0 1 0-6"/><path d="M18 21a3 3 0 0 1 0-6"/><path d="M6 5h12M6 15h12"/></svg></div>
+              <b>Уведомления</b>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="3"><path d="m9 5 7 7-7 7"/></svg>
+            </div>
+            <div class="p-row">
+              <div class="p-ic" style="background:#9BC1FF;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#141414" stroke-width="2.6"><path d="M20.5 14.5A8.5 8.5 0 0 0 9.5 3.5a8.5 8.5 0 1 0 11 11Z"/></svg></div>
+              <b>Тёмная тема</b>
+              <div class="switch sw-off" style="width:56px;height:34px;box-shadow:none;"><div style="position:absolute;top:4px;left:5px;width:24px;height:22px;border-radius:7px;background:#fff;border:2.5px solid #141414;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;">OFF</div></div>
+            </div>
+          </div>
+          <div class="prof-btns" style="flex:1;">
+            <div class="btn lime">Поделиться геопозицией</div>
+            <div class="ghost-btn">Выйти</div>
+          </div>
+        </div>
+        <div class="nav">
+          <div class="nav-i"><div class="nav-pill"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 21s-7-5.1-7-11a7 7 0 0 1 14 0c0 5.9-7 11-7 11Z"/><circle cx="12" cy="10" r="2.6"/></svg></div>Карта</div>
+          <div class="nav-i"><div class="nav-pill"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><circle cx="9" cy="8" r="3.4"/><path d="M2.5 20c.8-3.4 3.4-5 6.5-5s5.7 1.6 6.5 5"/><circle cx="17.5" cy="9" r="2.6"/><path d="M15.5 14.6c2.6.2 4.6 1.7 5.5 4.4"/></svg></div>Друзья</div>
+          <div class="nav-i act"><div class="nav-pill"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c1.2-3.8 4-5.5 7.5-5.5s6.3 1.7 7.5 5.5"/></svg></div>Профиль</div>
+        </div>
+        <div class="homebar" style="bottom:4px;"></div>
+      </div></div>
+      <figcaption>Профиль</figcaption>
+    </figure>
+
+  </div>
+</div>
+</body>
+</html>

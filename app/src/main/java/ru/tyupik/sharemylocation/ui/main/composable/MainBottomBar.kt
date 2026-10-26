@@ -1,5 +1,15 @@
 package ru.tyupik.sharemylocation.ui.main.composable
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Map
@@ -10,15 +20,22 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import ru.tyupik.sharemylocation.R
 import ru.tyupik.sharemylocation.ui.main.MainTab
+import ru.tyupik.sharemylocation.ui.theme.AuroraButtonBrush
+import ru.tyupik.sharemylocation.ui.theme.AuroraGlass
+import ru.tyupik.sharemylocation.ui.theme.AuroraGlassBorder
+import ru.tyupik.sharemylocation.ui.theme.AuroraOnGradient
 
 /** Описание одной вкладки нижней навигации: подпись и пара иконок выбранное/невыбранное. */
 private data class MainTabItem(
@@ -34,7 +51,10 @@ private val MAIN_TAB_ITEMS = listOf(
     MainTabItem(MainTab.PROFILE, R.string.main_tab_profile, Icons.Filled.Person, Icons.Outlined.Person),
 )
 
-/** Нижняя навигация главного экрана: вкладки Карта, Друзья, Профиль. */
+/**
+ * Нижняя навигация главного экрана: плавающая стеклянная пилюля AURORA с вкладками
+ * Карта, Друзья, Профиль. Выбранный таб — градиентная пилюля, невыбранный — прозрачный.
+ */
 @Composable
 internal fun MainBottomBar(
     selectedTab: MainTab,
@@ -42,29 +62,68 @@ internal fun MainBottomBar(
     onTabSelected: (MainTab) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    NavigationBar(modifier = modifier) {
-        MAIN_TAB_ITEMS.forEach { item ->
-            NavigationBarItem(
-                selected = selectedTab == item.tab,
-                onClick = { onTabSelected(item.tab) },
-                icon = {
-                    val icon = if (selectedTab == item.tab) item.selectedIcon else item.unselectedIcon
-                    if (item.tab == MainTab.FRIENDS && friendsBadgeCount > 0) {
-                        BadgedBox(badge = { Badge { Text(text = friendsBadgeCount.toString()) } }) {
+    Surface(
+        color = AuroraGlass,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        border = BorderStroke(1.dp, AuroraGlassBorder),
+        shape = MaterialTheme.shapes.extraLarge,
+        modifier = modifier
+            .padding(horizontal = 16.dp)
+            .navigationBarsPadding()
+            .padding(bottom = 12.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+        ) {
+            MAIN_TAB_ITEMS.forEach { item ->
+                val isSelected = selectedTab == item.tab
+                val contentColor = if (isSelected) {
+                    AuroraOnGradient
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(CircleShape)
+                        .then(
+                            if (isSelected) {
+                                Modifier.background(brush = AuroraButtonBrush, shape = CircleShape)
+                            } else {
+                                Modifier
+                            },
+                        )
+                        .clickable { onTabSelected(item.tab) }
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        val icon = if (isSelected) item.selectedIcon else item.unselectedIcon
+                        if (item.tab == MainTab.FRIENDS && friendsBadgeCount > 0) {
+                            BadgedBox(badge = { Badge { Text(text = friendsBadgeCount.toString()) } }) {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = stringResource(item.labelRes),
+                                    tint = contentColor,
+                                )
+                            }
+                        } else {
                             Icon(
                                 imageVector = icon,
                                 contentDescription = stringResource(item.labelRes),
+                                tint = contentColor,
                             )
                         }
-                    } else {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = stringResource(item.labelRes),
+                        Text(
+                            text = stringResource(item.labelRes),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = contentColor,
                         )
                     }
-                },
-                label = { Text(stringResource(item.labelRes)) },
-            )
+                }
+            }
         }
     }
 }

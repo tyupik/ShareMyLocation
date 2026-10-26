@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -19,6 +18,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import ru.tyupik.sharemylocation.R
 import ru.tyupik.sharemylocation.ui.common.ProfileAvatar
+import ru.tyupik.sharemylocation.ui.common.composable.GlassCard
 import ru.tyupik.sharemylocation.ui.friends.FriendUiModel
 
 /** Карточка найденного по телефону пользователя с кнопкой «Добавить в друзья». */
@@ -29,7 +29,7 @@ internal fun FriendsSearchResultCard(
     onAddClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(modifier = modifier.fillMaxWidth()) {
+    GlassCard(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()

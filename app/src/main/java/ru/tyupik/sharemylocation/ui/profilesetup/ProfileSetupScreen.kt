@@ -44,6 +44,7 @@ import ru.tyupik.sharemylocation.ui.profilesetup.composable.ProfileSetupErrorBan
 import ru.tyupik.sharemylocation.ui.profilesetup.composable.ProfileSetupNameField
 import ru.tyupik.sharemylocation.ui.profilesetup.composable.ProfileSetupPhoneField
 import ru.tyupik.sharemylocation.ui.profilesetup.composable.ProfileSetupSaveButton
+import ru.tyupik.sharemylocation.ui.common.composable.AuroraBackdrop
 import ru.tyupik.sharemylocation.ui.theme.ShareMyLocationTheme
 
 /** Допустимое число цифр в телефоне: экранное правило для доступности кнопки (авторитетное — в интеракторе). */
@@ -185,66 +186,68 @@ private fun ProfileSetupContent(
         ProfileSetupUiError.InvalidPhone, null -> null
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .safeDrawingPadding()
-            .imePadding()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Spacer(modifier = Modifier.height(24.dp))
+    AuroraBackdrop {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .safeDrawingPadding()
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Spacer(modifier = Modifier.height(24.dp))
 
-        if (bannerErrorText != null) {
-            ProfileSetupErrorBanner(
-                text = bannerErrorText,
-                onDismiss = { onIntent(ProfileSetupIntent.ErrorDismissed) },
+            if (bannerErrorText != null) {
+                ProfileSetupErrorBanner(
+                    text = bannerErrorText,
+                    onDismiss = { onIntent(ProfileSetupIntent.ErrorDismissed) },
+                )
+            }
+
+            Text(
+                text = stringResource(
+                    if (isEditMode) R.string.profile_setup_edit_title else R.string.profile_setup_title,
+                ),
+                style = MaterialTheme.typography.headlineMedium,
+            )
+
+            ProfileSetupAvatarPicker(
+                displayName = uiState.displayName,
+                savedAvatarPath = uiState.savedAvatarPath,
+                localPath = uiState.pendingAvatarPath,
+                isEnabled = !uiState.isSaving,
+                isEditMode = isEditMode,
+                onPickRequest = onPickAvatar,
+            )
+
+            ProfileSetupNameField(
+                value = uiState.displayName,
+                isEnabled = !uiState.isSaving,
+                onValueChange = { onIntent(ProfileSetupIntent.DisplayNameChanged(it)) },
+            )
+
+            ProfileSetupPhoneField(
+                value = uiState.phone,
+                isEnabled = !uiState.isSaving,
+                errorText = if (uiState.error is ProfileSetupUiError.InvalidPhone) {
+                    stringResource(R.string.profile_setup_error_phone)
+                } else {
+                    null
+                },
+                onValueChange = { onIntent(ProfileSetupIntent.PhoneChanged(it)) },
+            )
+
+            ProfileSetupSaveButton(
+                text = stringResource(
+                    if (isEditMode) R.string.profile_setup_save_button else R.string.profile_setup_done_button,
+                ),
+                isEnabled = isFormValid,
+                isLoading = uiState.isSaving,
+                onClick = { onIntent(ProfileSetupIntent.SaveClicked) },
             )
         }
-
-        Text(
-            text = stringResource(
-                if (isEditMode) R.string.profile_setup_edit_title else R.string.profile_setup_title,
-            ),
-            style = MaterialTheme.typography.headlineMedium,
-        )
-
-        ProfileSetupAvatarPicker(
-            displayName = uiState.displayName,
-            savedAvatarPath = uiState.savedAvatarPath,
-            localPath = uiState.pendingAvatarPath,
-            isEnabled = !uiState.isSaving,
-            isEditMode = isEditMode,
-            onPickRequest = onPickAvatar,
-        )
-
-        ProfileSetupNameField(
-            value = uiState.displayName,
-            isEnabled = !uiState.isSaving,
-            onValueChange = { onIntent(ProfileSetupIntent.DisplayNameChanged(it)) },
-        )
-
-        ProfileSetupPhoneField(
-            value = uiState.phone,
-            isEnabled = !uiState.isSaving,
-            errorText = if (uiState.error is ProfileSetupUiError.InvalidPhone) {
-                stringResource(R.string.profile_setup_error_phone)
-            } else {
-                null
-            },
-            onValueChange = { onIntent(ProfileSetupIntent.PhoneChanged(it)) },
-        )
-
-        ProfileSetupSaveButton(
-            text = stringResource(
-                if (isEditMode) R.string.profile_setup_save_button else R.string.profile_setup_done_button,
-            ),
-            isEnabled = isFormValid,
-            isLoading = uiState.isSaving,
-            onClick = { onIntent(ProfileSetupIntent.SaveClicked) },
-        )
     }
 
     if (uiState.isAvatarSourceDialogVisible) {

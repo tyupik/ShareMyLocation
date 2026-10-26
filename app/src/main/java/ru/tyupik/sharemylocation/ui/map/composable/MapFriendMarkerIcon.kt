@@ -19,24 +19,29 @@ import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import ru.tyupik.sharemylocation.ui.theme.MARKER_NEON_COLORS
 
 /**
- * Кэш иконок маркеров: ключ — путь файла аватара (уникален на «uid:версия»), лимит ~32 —
- * стартовый. Модульный (переживает пересоздание композиции при переключении вкладок),
- * ограничивает число живых битмапов.
+ * Кэш иконок маркеров: ключ — композитный «uid|путь файла аватара», лимит ~32 — стартовый.
+ * Модульный (переживает пересоздание композиции при переключении вкладок), ограничивает
+ * число живых битмапов.
  */
 private val markerIconCache = LruCache<String, BitmapDescriptor>(MARKER_ICON_CACHE_SIZE)
 
 /**
- * Круглая аватар-иконка маркера друга: декод файла (center-crop, круглая маска, рамка)
- * либо круг с инициалом при отсутствии аватара (паттерн плейсхолдера ProfileAvatar).
+ * Круглая аватар-иконка маркера друга с неоновым кольцом AURORA: цвет кольца выбирается
+ * из [MARKER_NEON_COLORS] детерминированно по [uid] (Math.floorMod от hashCode — всегда
+ * неотрицательный индекс). Декод файла (center-crop, круглая маска, кольцо) либо круг
+ * с инициалом при отсутствии аватара (паттерн плейсхолдера ProfileAvatar).
  * Декод — в IO-диспетчере, BitmapDescriptorFactory.fromBitmap — только main-поток.
- * Иконка пересоздаётся ТОЛЬКО при смене ключей ([avatarPath], [displayName]): тики
+ * Иконка пересоздаётся ТОЛЬКО при смене ключей ([uid], [avatarPath], [displayName]): тики
  * координат двигают маркер через rememberUpdatedMarkerState и к иконке отношения не имеют.
- * Цвета — только роли MaterialTheme.colorScheme, передаются в отрисовку аргументами.
+ * Цвета — роли MaterialTheme.colorScheme и палитра маркеров из ui.theme, передаются
+ * в отрисовку Int-аргументами.
  */
 @Composable
 internal fun rememberFriendMarkerIcon(
+    uid: String,
     avatarPath: String?,
     displayName: String,
 ): BitmapDescriptor {
@@ -44,7 +49,8 @@ internal fun rememberFriendMarkerIcon(
     val borderWidthPx = with(LocalDensity.current) { BORDER_WIDTH_DP.dp.roundToPx() }
     val circleColorArgb = MaterialTheme.colorScheme.surfaceVariant.toArgb()
     val initialColorArgb = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
-    val borderColorArgb = MaterialTheme.colorScheme.surface.toArgb()
+    val ringColorArgb = MARKER_NEON_COLORS[Math.floorMod(uid.hashCode(), MARKER_NEON_COLORS.size)].toArgb()
+    val cacheKey = "$uid|$avatarPath"
 
     // Синхронный плейсхолдер с инициалом: маркер никогда не остаётся без иконки,
     // пока аватар декодируется; ошибка декода оставляет его навсегда.
@@ -54,7 +60,7 @@ internal fun rememberFriendMarkerIcon(
         borderWidthPx,
         circleColorArgb,
         initialColorArgb,
-        borderColorArgb,
+        ringColorArgb,
     ) {
         BitmapDescriptorFactory.fromBitmap(
             renderInitialBitmap(
@@ -63,55 +69,55 @@ internal fun rememberFriendMarkerIcon(
                 borderWidthPx = borderWidthPx,
                 circleColor = circleColorArgb,
                 textColor = initialColorArgb,
-                borderColor = borderColorArgb,
+                ringColor = ringColorArgb,
             ),
         )
     }
 
     val iconState = produceState(
-        initialValue = avatarPath?.let { markerIconCache.get(it) } ?: placeholder,
-        avatarPath,
+        initialValue = markerIconCache.get(cacheKey) ?: placeholder,
+        cacheKey,
         displayName,
     ) {
+        markerIconCache.get(cacheKey)?.let { cached ->
+            value = cached
+            return@produceState
+        }
         val path = avatarPath
         if (path == null) {
             value = placeholder
             return@produceState
         }
-        markerIconCache.get(path)?.let { cached ->
-            value = cached
-            return@produceState
-        }
         // Декод файла — IO; BitmapDescriptorFactory.fromBitmap требует main-поток.
         val bitmap = withContext(Dispatchers.IO) {
-            decodeCircularAvatar(path, circleSizePx, borderWidthPx, borderColorArgb)
+            decodeCircularAvatar(path, circleSizePx, borderWidthPx, ringColorArgb)
         }
         if (bitmap == null) {
             value = placeholder
             return@produceState
         }
         val icon = BitmapDescriptorFactory.fromBitmap(bitmap)
-        markerIconCache.put(path, icon)
+        markerIconCache.put(cacheKey, icon)
         value = icon
     }
     return iconState.value
 }
 
-/** Круг с инициалом: рамка (внешний круг цвета surface), заливка surfaceVariant, первая буква имени. */
+/** Круг с инициалом: неоновое кольцо, заливка surfaceVariant, первая буква имени. */
 private fun renderInitialBitmap(
     displayName: String,
     circleSizePx: Int,
     borderWidthPx: Int,
     circleColor: Int,
     textColor: Int,
-    borderColor: Int,
+    ringColor: Int,
 ): Bitmap {
     val bitmap = Bitmap.createBitmap(circleSizePx, circleSizePx, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
     val center = circleSizePx / 2f
     val radius = center - borderWidthPx
-    val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = borderColor }
-    canvas.drawCircle(center, center, center, borderPaint)
+    val ringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = ringColor }
+    canvas.drawCircle(center, center, center, ringPaint)
     val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = circleColor }
     canvas.drawCircle(center, center, radius, fillPaint)
 
@@ -129,7 +135,7 @@ private fun renderInitialBitmap(
 }
 
 /**
- * Декод файла аватара в круг с рамкой; null — файл не читается (останется плейсхолдер).
+ * Декод файла аватара в круг с неоновым кольцом; null — файл не читается (останется плейсхолдер).
  * Center-crop до квадрата минимальной стороны, масштаб под круг, антиалиасная круглая
  * маска через BitmapShader.
  */
@@ -137,7 +143,7 @@ private fun decodeCircularAvatar(
     path: String,
     circleSizePx: Int,
     borderWidthPx: Int,
-    borderColor: Int,
+    ringColor: Int,
 ): Bitmap? {
     val decoded = BitmapFactory.decodeFile(path) ?: return null
     val side = minOf(decoded.width, decoded.height)
@@ -157,8 +163,8 @@ private fun decodeCircularAvatar(
     val canvas = Canvas(bitmap)
     val center = circleSizePx / 2f
     val radius = center - borderWidthPx
-    val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = borderColor }
-    canvas.drawCircle(center, center, center, borderPaint)
+    val ringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = ringColor }
+    canvas.drawCircle(center, center, center, ringPaint)
     val avatarPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         shader = BitmapShader(scaled, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
     }
@@ -169,7 +175,7 @@ private fun decodeCircularAvatar(
 /** Сторона круглой иконки маркера; стартовое значение плана. */
 private const val CIRCLE_SIZE_DP = 40
 
-/** Толщина рамки иконки; стартовое значение плана. */
+/** Толщина кольца иконки; стартовое значение плана. */
 private const val BORDER_WIDTH_DP = 3
 
 /** Лимит LruCache иконок: стартовое значение плана. */

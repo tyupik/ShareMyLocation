@@ -17,7 +17,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -32,6 +31,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import ru.tyupik.sharemylocation.R
+import ru.tyupik.sharemylocation.ui.common.composable.AuroraBackdrop
+import ru.tyupik.sharemylocation.ui.common.composable.LoadError
 import ru.tyupik.sharemylocation.ui.sharing.composable.SharingAudienceOption
 import ru.tyupik.sharemylocation.ui.sharing.composable.SharingCheckRow
 import ru.tyupik.sharemylocation.ui.sharing.composable.SharingEnabledSwitch
@@ -90,7 +91,9 @@ internal fun SharingSettingsScreen(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        SharingSettingsContent(uiState = uiState, onIntent = viewModel::onIntent)
+        AuroraBackdrop {
+            SharingSettingsContent(uiState = uiState, onIntent = viewModel::onIntent)
+        }
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
@@ -194,7 +197,11 @@ private fun SharingSelectionSections(
     )
     if (uiState.isFriendsLoadFailed) {
         // Падение секции людей не скрывает других секций: inline-состояние + «Повторить».
-        SharingSectionLoadError(onRetry = { onIntent(SharingSettingsIntent.ScreenShown) })
+        LoadError(
+            text = stringResource(R.string.sharing_load_error),
+            retryText = stringResource(R.string.sharing_retry),
+            onRetry = { onIntent(SharingSettingsIntent.ScreenShown) },
+        )
     } else if (uiState.friends.isEmpty()) {
         SharingSectionPlaceholder(stringResource(R.string.sharing_empty_friends))
     } else {
@@ -212,7 +219,11 @@ private fun SharingSelectionSections(
     )
     if (uiState.isGroupsLoadFailed) {
         // Падение секции групп не скрывает других секций: inline-состояние + «Повторить».
-        SharingSectionLoadError(onRetry = { onIntent(SharingSettingsIntent.ScreenShown) })
+        LoadError(
+            text = stringResource(R.string.sharing_load_error),
+            retryText = stringResource(R.string.sharing_retry),
+            onRetry = { onIntent(SharingSettingsIntent.ScreenShown) },
+        )
     } else if (uiState.groups.isEmpty()) {
         SharingSectionPlaceholder(stringResource(R.string.sharing_empty_groups))
     } else {
@@ -237,25 +248,6 @@ private fun SharingSectionPlaceholder(text: String) {
             .fillMaxWidth()
             .padding(vertical = 8.dp),
     )
-}
-
-/** Inline-состояние упавшей realtime-секции: текст ошибки и «Повторить» (= ScreenShown). */
-@Composable
-private fun SharingSectionLoadError(onRetry: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = stringResource(R.string.sharing_load_error),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-        TextButton(onClick = onRetry) {
-            Text(stringResource(R.string.sharing_retry))
-        }
-    }
 }
 
 /** Текст экрана-ошибки: сеть показывается явно, остальное — generic. */
