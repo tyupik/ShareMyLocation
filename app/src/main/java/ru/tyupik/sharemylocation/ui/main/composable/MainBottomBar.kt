@@ -72,6 +72,9 @@ private val TABS_ROW_HORIZONTAL_PADDING = 8.dp
 /** Вертикальный отступ контента вкладок внутри навбара. */
 private val TABS_ROW_VERTICAL_PADDING = 8.dp
 
+/** Вертикальный зазор пилюли активного таба от краёв навбара: стекло видно сверху и снизу. */
+private val PILL_VERTICAL_INSET = 6.dp
+
 /** Коэффициент затухания пружины смещения пилюли: лёгкий overshoot даёт «перекатывание». */
 private const val PILL_SPRING_DAMPING_RATIO = 0.75f
 
@@ -138,7 +141,7 @@ internal fun MainBottomBar(
                     .drawBehind {
                         val pillWidthPx = tabWidth.toPx()
                         val insetX = pillWidthPx * (1f - pillPulse.value) / 2f
-                        val insetY = size.height * (1f - pillPulse.value) / 2f
+                        val insetY = PILL_VERTICAL_INSET.toPx() + size.height * (1f - pillPulse.value) / 2f
                         drawRoundRect(
                             brush = AuroraButtonBrush,
                             topLeft = Offset(pillX.toPx() + insetX, insetY),
